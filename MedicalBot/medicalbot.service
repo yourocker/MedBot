@@ -1,0 +1,17 @@
+﻿[Unit]
+Description=Medical Bot Service
+After=network.target
+
+[Service]
+# Важно: путь к твоей вложенной папке
+WorkingDirectory=/root/MedicalBot/MedicalBot
+# Команда запуска
+ExecStart=/usr/bin/dotnet run
+# Перезапуск если упадет
+Restart=always
+RestartSec=10
+User=root
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+[Install]
+WantedBy=multi-user.target
