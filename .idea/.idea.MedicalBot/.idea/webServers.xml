@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="6f9a4f6b-6196-4331-ba09-9dab66f20dc2" name="MedGroupBotServer">
+        <fileTransfer rootFolder="/root" accessType="SFTP" host="185.244.172.68" port="22" sshConfigId="b9ea1460-30e1-4e66-b546-54ad2560ffa9" sshConfig="root@185.244.172.68:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
