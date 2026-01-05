@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MedicalBot", "MedicalBot\MedicalBot.csproj", "{5D539C62-B431-4058-8EC0-C21267FD4C3D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MedicalWeb", "MedicalWeb\MedicalWeb.csproj", "{CF44566C-1059-41DA-B67E-DD8279AE41DB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{5D539C62-B431-4058-8EC0-C21267FD4C3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D539C62-B431-4058-8EC0-C21267FD4C3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D539C62-B431-4058-8EC0-C21267FD4C3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF44566C-1059-41DA-B67E-DD8279AE41DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF44566C-1059-41DA-B67E-DD8279AE41DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF44566C-1059-41DA-B67E-DD8279AE41DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF44566C-1059-41DA-B67E-DD8279AE41DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

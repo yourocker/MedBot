@@ -1,0 +1,64 @@
+﻿@model MedicalBot.Entities.Patient
+
+@{
+    ViewData["Title"] = "Карточка пациента";
+    // Получаем список визитов из контроллера и приводим к нужному типу
+    var visits = ViewBag.Visits as IEnumerable<MedicalBot.Entities.Visit>;
+}
+
+<div class="container mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary mb-3">← Вернуться к списку</a>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">@Model.FullName</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Телефон:</strong>
+                    <p class="text-muted">@Model.PhoneNumber</p>
+                </div>
+                <div class="col-md-4">
+                    <strong>Номер карты:</strong>
+                    <p class="text-muted">@Model.CardNumber</p>
+                </div>
+                <div class="col-md-4">
+                    <strong>Комментарий:</strong>
+                    <p class="text-muted">@(string.IsNullOrEmpty(Model.Comment) ? "-" : Model.Comment)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3">История визитов</h4>
+    
+    <table class="table table-hover shadow-sm rounded overflow-hidden">
+        <thead class="table-light">
+            <tr>
+                <th>Дата</th>
+                <th>Услуга</th>
+                <th>Сумма</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (visits != null && visits.Any())
+            {
+                foreach (var visit in visits)
+                {
+                    <tr>
+                        <td>@visit.Date.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@visit.ServiceName</td>
+                        <td>@visit.TotalCost.ToString("C2")</td> 
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="3" class="text-center text-muted">Визитов не найдено.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
