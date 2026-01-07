@@ -1,30 +1,66 @@
 ﻿@model MedicalBot.Entities.Company.Department
-@{ ViewData["Title"] = "Редактирование"; }
 
-<form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="Id" />
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="mb-3">
-                <label asp-for="Name" class="form-label fw-bold">Название</label>
-                <input asp-for="Name" class="form-control" required />
+@{
+    ViewData["Title"] = "Редактирование подразделения";
+}
+
+<div class="container-fluid">
+    <div class="d-flex align-items-center mb-4">
+        <a asp-action="Index" class="btn btn-outline-secondary me-3">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1 class="h3 mb-0">Редактирование: @Model.Name</h1>
+    </div>
+
+    <form asp-action="Edit" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="Id" />
+        @* Скрытое поле для сохранения существующих JSON-свойств, если они есть *@
+        <input type="hidden" asp-for="Properties" />
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary">Основная информация</h5>
             </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Родительский отдел</label>
-                    <select asp-for="ParentId" class="form-select" asp-items="ViewBag.ParentId">
-                        <option value="">-- Корень --</option>
-                    </select>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label fw-bold">Название подразделения</label>
+                    <input asp-for="Name" class="form-control" placeholder="Введите название..." required />
+                    <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Руководитель</label>
-                    <select asp-for="ManagerId" class="form-select" asp-items="ViewBag.ManagerId">
-                        <option value="">-- Не назначен --</option>
-                    </select>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ParentId" class="form-label">Родительское подразделение</label>
+                        <select asp-for="ParentId" class="form-select" asp-items="ViewBag.ParentId">
+                            <option value="">-- Корень организации (нет родителя) --</option>
+                        </select>
+                        <div class="form-text">Выберите подразделение выше уровнем</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ManagerId" class="form-label">Руководитель</label>
+                        <select asp-for="ManagerId" class="form-select" asp-items="ViewBag.ManagerId">
+                            <option value="">-- Не назначен --</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <partial name="_DynamicFields" model="Model" />
-    <button type="submit" class="btn btn-primary px-5">Сохранить</button>
-</form>
+
+        @* ШАГ 3: Исправленный вызов динамических полей *@
+        <partial name="_DynamicFields" />
+
+        <div class="mt-4 border-top pt-3 d-flex justify-content-between">
+            <div>
+                <button type="submit" class="btn btn-primary px-5">
+                    <i class="bi bi-check-lg me-2"></i>Сохранить изменения
+                </button>
+                <a asp-action="Index" class="btn btn-link text-secondary">Отмена</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

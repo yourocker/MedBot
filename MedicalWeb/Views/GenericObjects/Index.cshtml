@@ -1,0 +1,60 @@
+﻿@model IEnumerable<MedicalBot.Entities.Platform.GenericObject>
+@using MedicalBot.Entities.Platform
+@using System.Text.Json
+
+@{
+    var definition = ViewBag.Definition as MedicalBot.Entities.Platform.AppDefinition;
+    ViewData["Title"] = definition?.Name ?? "Объекты";
+    var fields = definition?.Fields?.OrderBy(f => f.Label).ToList() ?? new List<AppFieldDefinition>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-box-seam me-2"></i>@ViewData["Title"]</h2>
+    <a asp-action="Create" asp-route-entityCode="@definition?.EntityCode" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Добавить
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-3">Наименование</th>
+                    @foreach (var field in fields.Take(3)) 
+                    {
+                        <th>@field.Label</th>
+                    }
+                    <th class="text-end pe-3">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model) 
+                {
+                    var props = new Dictionary<string, string>();
+                    if (!string.IsNullOrEmpty(item.Properties)) 
+                    {
+                        try {
+                            props = JsonSerializer.Deserialize<Dictionary<string, string>>(item.Properties) ?? props;
+                        } catch { /* ignore */ }
+                    }
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-bold text-primary">@item.Name</div>
+                            <small class="text-muted">ID: @item.Id.ToString().Substring(0,8)</small>
+                        </td>
+                        @foreach (var field in fields.Take(3)) 
+                        {
+                            <td>@(props.ContainsKey(field.SystemName) ? props[field.SystemName] : "-")</td>
+                        }
+                        <td class="text-end pe-3">
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

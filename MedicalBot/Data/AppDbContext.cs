@@ -28,6 +28,9 @@ namespace MedicalBot.Data
         public DbSet<Position> Positions { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<StaffAppointment> StaffAppointments { get; set; }
+        
+        // ---УНИВЕРСАЛЬНЫЕ ОБЪЕКТЫ ---
+        public DbSet<GenericObject> GenericObjects { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

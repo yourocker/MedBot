@@ -12,14 +12,13 @@ namespace MedicalWeb.Controllers
         {
         }
 
-        // Исправлено: добавлена загрузка StaffAppointments и связанных Employee
         public async Task<IActionResult> Index()
         {
             var departments = await _context.Departments
-                .Include(d => d.Manager) // Загружаем руководителя
-                .Include(d => d.Parent)  // Загружаем родительский отдел для дерева
-                .Include(d => d.StaffAppointments) // Загружаем связи с сотрудниками
-                    .ThenInclude(sa => sa.Employee) // Загружаем данные самих сотрудников
+                .Include(d => d.Manager)
+                .Include(d => d.Parent)
+                .Include(d => d.StaffAppointments) // Подгружаем связи
+                    .ThenInclude(sa => sa.Employee) // Подгружаем сотрудников для отображения в списке
                 .OrderBy(d => d.Name)
                 .ToListAsync();
 

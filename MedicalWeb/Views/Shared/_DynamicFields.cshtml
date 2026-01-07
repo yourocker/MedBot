@@ -1,6 +1,7 @@
 ﻿@using MedicalBot.Entities.Platform
+@using MedicalBot.Entities
 @using System.Text.Json
-@model MedicalBot.Entities.Company.Employee
+@model MedicalBot.Entities.IHasDynamicProperties
 
 @{
     var fields = ViewBag.DynamicFields as List<AppFieldDefinition>;

@@ -1,0 +1,27 @@
+﻿@model MedicalBot.Entities.Platform.GenericObject
+@{ ViewData["Title"] = "Новая запись"; }
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="mb-4">Добавление объекта</h2>
+        <form asp-action="Create" method="post">
+            <input type="hidden" name="EntityCode" value="@ViewBag.EntityCode" />
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-bold">Основное наименование</label>
+                        <input asp-for="Name" class="form-control form-control-lg" placeholder="Напр. Серийный номер или модель" required />
+                    </div>
+                </div>
+            </div>
+
+            <partial name="_DynamicFields" />
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success px-5">Создать</button>
+                <a asp-action="Index" asp-route-entityCode="@ViewBag.EntityCode" class="btn btn-link">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
