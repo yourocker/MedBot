@@ -6,14 +6,13 @@
     var fields = ViewBag.DynamicFields as List<AppFieldDefinition>;
     var values = new Dictionary<string, string>();
     
-    // Десериализация существующих данных
-    if (Model != null && !string.IsNullOrEmpty(Model.Properties))
+    if (!string.IsNullOrEmpty(Model?.Properties))
     {
         try 
         { 
             values = JsonSerializer.Deserialize<Dictionary<string, string>>(Model.Properties) ?? new Dictionary<string, string>(); 
         }
-        catch { /* Игнорируем ошибки парсинга */ }
+        catch { /* Ошибка парсинга JSON */ }
     }
 }
 
@@ -28,78 +27,72 @@
             <div class="row">
                 @foreach (var field in fields)
                 {
-                    var currentValue = values.ContainsKey(field.SystemName) ? values[field.SystemName] : "";
+                    values.TryGetValue(field.SystemName, out var currentValue);
+                    currentValue ??= "";
                     
                     <div class="col-md-4 mb-3">
                         <label class="form-label fw-bold text-secondary">@field.Label</label>
                         
                         @switch (field.DataType)
                         {
-                            case FieldDataType.Text:
+                            @* Обычная строка *@
                             case FieldDataType.String:
                                 <input type="text" name="DynamicProps[@field.SystemName]" value="@currentValue" 
                                        class="form-control" @(field.IsRequired ? "required" : "") />
                                 break;
 
-                            case FieldDataType.MultilineText:
+                            @* Многострочный текст *@
+                            case FieldDataType.Text:
                                 <textarea name="DynamicProps[@field.SystemName]" class="form-control" 
                                           rows="3" @(field.IsRequired ? "required" : "")>@currentValue</textarea>
                                 break;
 
+                            @* Число *@
                             case FieldDataType.Number:
                                 <input type="number" name="DynamicProps[@field.SystemName]" value="@currentValue" 
                                        class="form-control" step="any" @(field.IsRequired ? "required" : "") />
                                 break;
 
+                            @* Деньги *@
                             case FieldDataType.Money:
                                 <div class="input-group">
                                     <span class="input-group-text">₽</span>
                                     <input type="number" name="DynamicProps[@field.SystemName]" value="@currentValue" 
-                                           class="form-control" step="0.01" placeholder="0.00" @(field.IsRequired ? "required" : "") />
+                                           class="form-control" step="0.01" @(field.IsRequired ? "required" : "") />
                                 </div>
                                 break;
 
+                            @* Дата *@
                             case FieldDataType.DateTime:
                                 <input type="date" name="DynamicProps[@field.SystemName]" value="@currentValue" 
                                        class="form-control" @(field.IsRequired ? "required" : "") />
                                 break;
 
+                            @* Да/Нет *@
                             case FieldDataType.Boolean:
                                 <div class="form-check form-switch mt-2">
-                                    @* Скрытое поле гарантирует отправку "false", если чекбокс не нажат *@
                                     <input type="hidden" name="DynamicProps[@field.SystemName]" value="false" id="hidden_@field.SystemName" />
                                     <input type="checkbox" name="DynamicProps[@field.SystemName]" value="true" 
                                            class="form-check-input" id="check_@field.SystemName"
                                            @(currentValue.ToLower() == "true" ? "checked" : "") 
                                            onclick="document.getElementById('hidden_@field.SystemName').disabled = this.checked;" />
-                                    <label class="form-check-label" for="check_@field.SystemName">
-                                        @(currentValue.ToLower() == "true" ? "Активно" : "Выключено")
-                                    </label>
+                                    <label class="form-check-label" for="check_@field.SystemName"></label>
                                 </div>
                                 break;
 
+                            @* Ссылки и Таблицы (на будущее) *@
                             case FieldDataType.EntityLink:
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
-                                    <select name="DynamicProps[@field.SystemName]" class="form-select" @(field.IsRequired ? "required" : "")>
-                                        <option value="">-- Не выбрано --</option>
-                                        @if (!string.IsNullOrEmpty(currentValue))
-                                        {
-                                            <option value="@currentValue" selected>@currentValue (ID)</option>
-                                        }
-                                    </select>
+                            case FieldDataType.Table:
+                            case FieldDataType.File:
+                                <div class="alert alert-light border py-1 mb-0 small">
+                                    <i class="bi bi-info-circle"></i> Тип @field.DataType в разработке
+                                    <input type="hidden" name="DynamicProps[@field.SystemName]" value="@currentValue" />
                                 </div>
-                                <small class="text-muted">Тип: @field.DataType</small>
                                 break;
 
                             default:
                                 <input type="text" name="DynamicProps[@field.SystemName]" value="@currentValue" class="form-control" />
                                 break;
-                        }
-                        
-                        @if (field.IsRequired && field.DataType != FieldDataType.Boolean)
-                        {
-                            <div class="form-text text-danger" style="font-size: 0.75rem;">* Обязательно для заполнения</div>
                         }
                     </div>
                 }

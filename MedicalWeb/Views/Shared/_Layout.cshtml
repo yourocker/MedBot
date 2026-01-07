@@ -1,0 +1,139 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MedicalCore</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root { --main-bg: #1e2229; --sub-bg: #ffffff; --accent: #0d6efd; }
+        body { background-color: #f4f7f6; overflow: hidden; height: 100vh; display: flex; margin: 0; font-family: 'Segoe UI', sans-serif; }
+
+        /* Уровень 1: Только иконки */
+        #nav-main {
+            width: 70px; background: var(--main-bg);
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 20px; z-index: 1050; flex-shrink: 0;
+        }
+
+        .main-btn {
+            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+            color: #a0a6ad; font-size: 1.5rem; margin-bottom: 12px;
+            cursor: pointer;
+            border-radius: 10px; transition: 0.2s; text-decoration: none;
+        }
+        .main-btn:hover, .main-btn.active { background: rgba(255,255,255,0.1); color: #fff; }
+        .main-btn.active { color: var(--accent); background: #fff; }
+
+        /* Уровень 2: Меню раздела */
+        #nav-sub {
+            width: 240px; background: var(--sub-bg);
+            border-right: 1px solid #dee2e6;
+            display: flex; flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.03);
+            flex-shrink: 0;
+        }
+        .sub-header { padding: 25px 20px; font-weight: 700; font-size: 1.1rem; border-bottom: 1px solid #f0f0f0; }
+        .sub-link {
+            padding: 12px 20px; color: #495057; text-decoration: none;
+            display: flex; align-items: center; transition: 0.15s;
+        }
+        .sub-link:hover { background: #f8f9fa; color: var(--accent); }
+        .sub-link.active { color: var(--accent); background: #eef5ff; font-weight: 600; }
+        .sub-link i { margin-right: 12px; }
+
+        #content-wrapper { flex-grow: 1; overflow-y: auto; padding: 30px; }
+        .sortable-ghost { opacity: 0.2; }
+    </style>
+</head>
+<body>
+
+<nav id="nav-main">
+    <div id="sortable-menu" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        <a href="/" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")" data-id="home" title="Дашборд">
+            <i class="bi bi-speedometer2"></i>
+        </a>
+        <a href="/Employees" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Positions" || ViewContext.RouteData.Values["Controller"]?.ToString() == "Departments" || ViewContext.RouteData.Values["Controller"]?.ToString() == "Employees" ? "active" : "")" data-id="company" title="Компания">
+            <i class="bi bi-building"></i>
+        </a>
+        <a href="/Patients" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Patients" ? "active" : "")" data-id="patients" title="Пациенты">
+            <i class="bi bi-people"></i>
+        </a>
+        @* --- ДОБАВИЛИ ИКОНКУ КОНСТРУКТОРА ТУТ --- *@
+        <a href="/AppDefinitions" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AppDefinitions" ? "active" : "")" data-id="settings" title="Конструктор">
+            <i class="bi bi-gear"></i>
+        </a>
+    </div>
+</nav>
+
+<nav id="nav-sub">
+    @{
+        var controller = ViewContext.RouteData.Values["Controller"]?.ToString();
+    }
+
+    @if (controller == "Positions" || controller == "Departments" || controller == "Employees")
+    {
+        <div class="sub-header">Компания</div>
+        <a href="/Departments" class="sub-link"><i class="bi bi-diagram-3"></i> Оргструктура</a>
+        <a href="/Employees" class="sub-link @(controller == "Employees" ? "active" : "")"><i class="bi bi-person-badge"></i> Сотрудники</a>
+        <a href="/Positions" class="sub-link @(controller == "Positions" ? "active" : "")"><i class="bi bi-briefcase"></i> Должности</a>
+    }
+    else if (controller == "Patients")
+    {
+        <div class="sub-header">Пациенты</div>
+        <a href="/Patients" class="sub-link active"><i class="bi bi-person-lines-fill"></i> Реестр пациентов</a>
+        <a href="#" class="sub-link"><i class="bi bi-calendar-event"></i> Запись на прием</a>
+    }
+    @* --- ДОБАВИЛИ ПОДМЕНЮ КОНСТРУКТОРА ТУТ --- *@
+    else if (controller == "AppDefinitions")
+    {
+        <div class="sub-header">Конструктор</div>
+        <a href="/AppDefinitions" class="sub-link active"><i class="bi bi-layers"></i> Список сущностей</a>
+        <a href="#" class="sub-link text-muted"><i class="bi bi-database-gear"></i> Импорт данных</a>
+    }
+    else
+    {
+        <div class="sub-header">Главная</div>
+        <a href="/" class="sub-link active"><i class="bi bi-house"></i> Рабочий стол</a>
+    }
+</nav>
+
+<div id="content-wrapper">
+    <main role="main">
+        @RenderBody()
+    </main>
+</div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+    const el = document.getElementById('sortable-menu');
+    Sortable.create(el, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        store: {
+            get: (s) => localStorage.getItem('main-menu-order')?.split('|') || [],
+            set: (s) => localStorage.setItem('main-menu-order', s.toArray().join('|'))
+        }
+    });
+
+    $(document).ready(function() {
+        const order = localStorage.getItem('main-menu-order');
+        if (order && order.length > 0) {
+            const container = $('#sortable-menu');
+            order.split('|').forEach(id => {
+                const item = container.find(`[data-id="${id}"]`);
+                if (item.length) container.append(item);
+            });
+        }
+    });
+</script>
+
+@await RenderSectionAsync("Scripts", required: false)
+<script src="https://cdn.jsdelivr.net/npm/inputmask@5.0.8/dist/inputmask.min.js"></script>
+
+</body>
+</html>
