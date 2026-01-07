@@ -2,224 +2,79 @@
 
 @{
     ViewData["Title"] = "Оргструктура";
+    var rootDepartments = Model.Where(d => d.ParentId == null).OrderBy(d => d.Name).ToList();
 }
 
-@* 1. СООБЩЕНИЯ ОБ ОШИБКАХ *@
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
-<style>
-    .tree-list { list-style: none; padding-left: 0; }
-    .tree-list ul { 
-        list-style: none; 
-        padding-left: 2rem; 
-        border-left: 1px dashed #dee2e6; 
-        margin-left: 1rem;
-    }
-    .tree-node { margin-bottom: 0.5rem; position: relative; }
-    .tree-list ul li::before {
-        content: "";
-        position: absolute;
-        top: 1.2rem;
-        left: -1rem;
-        width: 1rem;
-        border-bottom: 1px dashed #dee2e6;
-    }
-    .hover-bg:hover { background-color: #f8f9fa !important; transition: 0.2s; }
-    .employee-item:last-child { border-bottom: none !important; }
-</style>
-
-@* 2. ЗАГОЛОВОК *@
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="mb-0"><i class="bi bi-diagram-3-fill me-2"></i> Оргструктура</h2>
-        <p class="text-muted small mb-0">Управление иерархией подразделений клиники</p>
-    </div>
+    <h2>Оргструктура</h2>
     <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i> Добавить подразделение
+        <i class="bi bi-plus-lg"></i> Добавить подразделение
     </a>
 </div>
 
-@* 3. ОСНОВНОЙ КОНТЕЙНЕР *@
-<div class="card shadow-sm border-0 p-4 bg-transparent">
-    @if (!Model.Any())
-    {
-        <div class="text-center py-5 bg-white rounded shadow-sm">
-            <i class="bi bi-building mb-3 d-block text-muted" style="font-size: 3rem;"></i>
-            <p class="text-muted">Подразделения еще не созданы.</p>
-        </div>
-    }
-    else
-    {
-        <ul class="tree-list">
-            @{ await RenderTree(null); }
-        </ul>
-    }
-</div>
+<div class="card shadow-sm">
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info">Подразделения еще не созданы.</div>
+        }
+        else
+        {
+            @* Используем локальную функцию с Task, чтобы TagHelpers (asp-action) работали корректно *@
+            async Task RenderTree(Guid? parentId, int level)
+            {
+                var children = Model.Where(d => d.ParentId == parentId).OrderBy(d => d.Name).ToList();
+                if (!children.Any()) return;
 
-@* 4. МОДАЛЬНОЕ ОКНО (ВЫНЕСЕНО ИЗ РЕКУРСИИ) *@
-<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="card border-0 shadow modal-content">
-            <form asp-action="AssignEmployee" method="post">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">Назначение в отдел</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted small mb-3">Назначение в отдел: <span id="targetDeptName" class="fw-bold text-dark"></span></p>
-    
-                    @* Скрытое поле для ID отдела *@
-                    <input type="hidden" name="departmentId" id="targetDeptId" />
+                <ul class="list-unstyled @(level > 0 ? "ms-4 border-start ps-3" : "")">
+                    @foreach (var dept in children)
+                    {
+                        <li class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border">
+                                <div>
+                                    <span class="fw-bold text-primary">@dept.Name</span>
+                                    
+                                    @* Отображение руководителя *@
+                                    @if (dept.Manager != null)
+                                    {
+                                        <div class="small text-muted">
+                                            <i class="bi bi-person-badge"></i> Руководитель: 
+                                            <strong>@dept.Manager.LastName @dept.Manager.FirstName</strong>
+                                        </div>
+                                    }
 
-                    @* Выбор Сотрудника *@
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Сотрудник</label>
-                        <select name="employeeId" class="form-select shadow-sm" required>
-                            <option value="">-- Выберите из списка --</option>
-                            @if (ViewBag.Staff != null)
-                            {
-                                @foreach (var emp in (SelectList)ViewBag.Staff)
-                                {
-                                    <option value="@emp.Value">@emp.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
+                                    @* Список сотрудников в этом отделе *@
+                                    @{
+                                        var staff = dept.StaffAppointments?.Select(sa => sa.Employee).Distinct().ToList();
+                                        if (staff != null && staff.Any())
+                                        {
+                                            <div class="mt-1">
+                                                @foreach (var emp in staff)
+                                                {
+                                                    <span class="badge bg-white text-dark border me-1">
+                                                        <i class="bi bi-person"></i> @emp.LastName @emp.FirstName[0].
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                                
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Edit" asp-route-id="@dept.Id" class="btn btn-outline-secondary" title="Редактировать">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            @* Рекурсия *@
+                            @{ await RenderTree(dept.Id, level + 1); }
+                        </li>
+                    }
+                </ul>
+            }
 
-                    @* Выбор Должности *@
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Должность в этом отделе</label>
-                        <select name="positionId" class="form-select shadow-sm" required>
-                            <option value="">-- Выберите должность --</option>
-                            @if (ViewBag.Positions != null)
-                            {
-                                @foreach (var pos in (SelectList)ViewBag.Positions)
-                                {
-                                    <option value="@pos.Value">@pos.Text</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary px-4">Добавить в штат</button>
-                </div>
-            </form>
-        </div>
+            @* Запуск отрисовки дерева *@
+            await RenderTree(null, 0);
+        }
     </div>
 </div>
-
-@* 5. РЕКУРСИВНАЯ ФУНКЦИЯ *@
-@{
-    async Task RenderTree(Guid? parentId)
-    {
-        var children = Model.Where(d => d.ParentId == parentId).OrderBy(d => d.Name).ToList();
-        if (!children.Any()) return;
-
-        foreach (var child in children)
-        {
-            var activeStaff = child.StaffAppointments?
-                .Where(a => a.Employee != null && !a.Employee.IsDismissed)
-                .ToList() ?? new List<MedicalBot.Entities.Company.StaffAppointment>();
-
-            var empCount = activeStaff.Count;
-            var collapseId = "employees_" + child.Id.ToString("N");
-
-            <li class="tree-node">
-                <div class="d-flex align-items-center p-2 rounded hover-bg border bg-white shadow-sm">
-                    <i class="bi bi-diagram-3 me-2 text-primary"></i>
-                    <div class="flex-grow-1">
-                        <span class="fw-bold">@child.Name</span>
-                        <button class="btn btn-sm btn-light border ms-3 py-0 px-2 shadow-sm" 
-                                type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" style="font-size: 0.75rem;">
-                            <i class="bi bi-people-fill me-1 text-primary"></i> Сотрудники: @empCount
-                        </button>
-                    </div>
-                    <div class="btn-group">
-                        <a asp-action="Edit" asp-route-id="@child.Id" class="btn btn-sm btn-link text-primary p-0 me-3">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <form asp-action="Delete" asp-route-id="@child.Id" method="post" onsubmit="return confirm('Удалить подразделение?')" style="display:inline;">
-                            <button type="submit" class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="collapse" id="@collapseId">
-                    <div class="card card-body mt-1 ms-4 p-3 border-0 shadow-sm bg-light">
-                        @* Руководитель *@
-                        <div class="mb-3">
-                            <label class="small text-muted fw-bold text-uppercase" style="font-size: 0.65rem;">Руководитель подразделения</label>
-                            @if (child.Manager != null)
-                            {
-                                <div class="d-flex justify-content-between align-items-center bg-white p-2 rounded border border-primary border-opacity-25 shadow-sm">
-                                    <div class="small fw-bold text-primary"><i class="bi bi-star-fill me-2"></i>@child.Manager.FullName</div>
-                                    <form asp-action="Edit" asp-route-id="@child.Id" method="post" style="display:inline;">
-                                        <input type="hidden" name="Id" value="@child.Id" />
-                                        <input type="hidden" name="Name" value="@child.Name" />
-                                        <input type="hidden" name="ParentId" value="@child.ParentId" />
-                                        <input type="hidden" name="ManagerId" value="" />
-                                        <button type="submit" class="btn btn-sm btn-link p-0 text-danger"><i class="bi bi-person-x"></i></button>
-                                    </form>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="small text-muted italic p-2 border rounded border-dashed text-center">
-                                    <i class="bi bi-person-dash me-1"></i> Не назначен
-                                    <a asp-action="Edit" asp-route-id="@child.Id" class="btn btn-sm btn-link p-0 ms-1" style="font-size: 0.75rem;">Назначить</a>
-                                </div>
-                            }
-                        </div>
-
-                        <hr class="my-2 opacity-10">
-
-                        @* Команда *@
-                        <label class="small text-muted fw-bold text-uppercase mb-2" style="font-size: 0.65rem;">Команда</label>
-                        @if (empCount > 0)
-                        {
-                            @foreach (var app in activeStaff)
-                            {
-                                <div class="employee-item d-flex justify-content-between align-items-center py-1 border-bottom border-secondary border-opacity-10">
-                                    <div class="small"><i class="bi bi-person-circle me-2 text-secondary"></i>@app.Employee.FullName</div>
-                                    <a asp-controller="Employees" asp-action="Edit" asp-route-id="@app.EmployeeId" class="btn btn-sm btn-link p-0 text-muted shadow-none"><i class="bi bi-box-arrow-in-right"></i></a>
-                                </div>
-                            }
-                        }
-                        
-                        <div class="mt-2">
-                             <button type="button" class="btn btn-sm btn-link p-0 text-primary fw-bold shadow-none" style="font-size: 0.8rem;"
-                                     onclick="openAssignModal('@child.Id', '@child.Name')">
-                                <i class="bi bi-person-plus-fill me-1"></i> Назначить существующего
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                @if (Model.Any(d => d.ParentId == child.Id))
-                {
-                    <ul>@{ await RenderTree(child.Id); }</ul>
-                }
-            </li>
-        }
-    }
-}
-
-@section Scripts {
-    <script>
-        function openAssignModal(deptId, deptName) {
-            document.getElementById('targetDeptId').value = deptId;
-            document.getElementById('targetDeptName').innerText = deptName;
-            var modalEl = document.getElementById('assignModal');
-            var myModal = new bootstrap.Modal(modalEl);
-            myModal.show();
-        }
-    </script>
-}

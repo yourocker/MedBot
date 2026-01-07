@@ -4,71 +4,63 @@
     ViewData["Title"] = "Сотрудники";
 }
 
-<style>
-    /* Стиль для уволенного сотрудника */
-    .row-dismissed {
-        background-color: rgba(220, 53, 69, 0.05) !important; /* Бледно-красный */
-        color: #6c757d;
-    }
-    .row-dismissed .badge {
-        filter: grayscale(1);
-        opacity: 0.6;
-    }
-</style>
-
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-person-badge me-2"></i> Сотрудники</h2>
+    <h2>Сотрудники</h2>
     <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-person-plus me-1"></i> Добавить сотрудника
+        <i class="bi bi-person-plus"></i> Новый сотрудник
     </a>
 </div>
 
 <div class="card shadow-sm border-0">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="bg-light">
                 <tr>
-                    <th>ФИО</th>
-                    <th>Должности и отделы</th>
-                    <th>Контакты</th>
-                    <th width="100"></th>
+                    <th class="ps-4">ФИО</th>
+                    <th>Телефон</th>
+                    <th>Должность / Отдел</th>
+                    <th class="text-center">Статус</th>
+                    <th class="text-end pe-4" style="width: 150px;">Действия</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var emp in Model)
+                @foreach (var item in Model)
                 {
-                    <tr class="@(emp.IsDismissed ? "row-dismissed" : "")" 
-                        data-bs-toggle="@(emp.IsDismissed ? "tooltip" : "")" 
-                        data-bs-placement="left" 
-                        title="@(emp.IsDismissed ? "Сотрудник уволен" : "")">
-                        
-                        <td class="fw-bold">
-                            @emp.FullName
-                            @if(emp.IsDismissed) {
-                                <span class="badge bg-secondary ms-2" style="font-size: 0.7rem;">Уволен</span>
+                    <tr class="@(item.IsDismissed ? "table-secondary opacity-75" : "")">
+                        <td class="ps-4">
+                            <div class="fw-bold">@item.LastName @item.FirstName @item.MiddleName</div>
+                        </td>
+                        <td>
+                            @if (item.Phones != null && item.Phones.Any())
+                            {
+                                <small class="text-muted"><i class="bi bi-phone"></i> @item.Phones.First()</small>
                             }
                         </td>
                         <td>
-                            @foreach (var app in emp.StaffAppointments)
+                            @foreach (var app in item.StaffAppointments)
                             {
-                                <div class="badge bg-info text-dark mb-1 d-block text-start">
-                                    <i class="bi bi-geo-alt small"></i> @(app.Department?.Name ?? "---") <br/>
-                                    <i class="bi bi-briefcase small"></i> @(app.Position?.Name ?? "---")
+                                <div class="small mb-1">
+                                    <span class="badge bg-light text-dark border">@app.Position?.Name</span>
+                                    <span class="text-muted ms-1">@app.Department?.Name</span>
                                 </div>
                             }
                         </td>
-                        <td>
-                            @foreach(var phone in emp.Phones) {
-                                <div><i class="bi bi-telephone small text-muted"></i> @phone</div>
-                            }
-                            @foreach(var email in emp.Emails) {
-                                <div><i class="bi bi-envelope small text-muted"></i> @email</div>
-                            }
+                        <td class="text-center">
+                             @if (item.IsDismissed)
+                             {
+                                 <span class="badge bg-danger">Уволен</span>
+                             }
+                             else
+                             {
+                                 <span class="badge bg-success">Работает</span>
+                             }
                         </td>
-                        <td class="text-end">
-                            <a asp-action="Edit" asp-route-id="@emp.Id" class="btn btn-link text-primary p-0 me-2">
-                                <i class="bi bi-pencil-square" style="font-size: 1.2rem;"></i>
-                            </a>
+                        <td class="text-end pe-4">
+                            <div class="btn-group btn-group-sm">
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -76,13 +68,3 @@
         </table>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        // Инициализация всплывающих подсказок Bootstrap
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
-    </script>
-}

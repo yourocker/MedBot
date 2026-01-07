@@ -5,29 +5,34 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MedicalWeb.Controllers
 {
-    public class PositionsController : Controller
+    public class PositionsController : BasePlatformController
     {
-        private readonly AppDbContext _context;
-
-        public PositionsController(AppDbContext context)
+        public PositionsController(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
-        // Список всех должностей
+        // GET: Positions
         public async Task<IActionResult> Index()
         {
-            var positions = await _context.Positions.ToListAsync();
-            return View(positions);
+            return View(await _context.Positions.OrderBy(p => p.Name).ToListAsync());
         }
 
-        // Создание (форма)
-        public IActionResult Create() => View();
+        // GET: Positions/Create
+        public async Task<IActionResult> Create()
+        {
+            // Загружаем поля для сущности "Position"
+            await LoadDynamicFields("Position");
+            return View();
+        }
 
+        // POST: Positions/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Position position)
+        public async Task<IActionResult> Create(Position position, Dictionary<string, string> DynamicProps)
         {
+            // Сохраняем динамические свойства
+            SaveDynamicProperties(position, DynamicProps);
+
             if (ModelState.IsValid)
             {
                 position.Id = Guid.NewGuid();
@@ -35,12 +40,70 @@ namespace MedicalWeb.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+            
+            // Если ошибка, перезагружаем поля
+            await LoadDynamicFields("Position");
             return View(position);
         }
 
-        // Удаление
+        // GET: Positions/Edit/5
+        public async Task<IActionResult> Edit(Guid? id)
+        {
+            if (id == null) return NotFound();
+
+            var position = await _context.Positions.FindAsync(id);
+            if (position == null) return NotFound();
+
+            // Загружаем поля
+            await LoadDynamicFields("Position");
+            return View(position);
+        }
+
+        // POST: Positions/Edit/5
         [HttpPost]
-        public async Task<IActionResult> Delete(Guid id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(Guid id, Position position, Dictionary<string, string> DynamicProps)
+        {
+            if (id != position.Id) return NotFound();
+
+            // Сохраняем динамические свойства
+            SaveDynamicProperties(position, DynamicProps);
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(position);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!PositionExists(position.Id)) return NotFound();
+                    else throw;
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            
+            // Если ошибка, перезагружаем поля
+            await LoadDynamicFields("Position");
+            return View(position);
+        }
+
+        // GET: Positions/Delete/5
+        public async Task<IActionResult> Delete(Guid? id)
+        {
+            if (id == null) return NotFound();
+
+            var position = await _context.Positions.FirstOrDefaultAsync(m => m.Id == id);
+            if (position == null) return NotFound();
+
+            return View(position);
+        }
+
+        // POST: Positions/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
             var position = await _context.Positions.FindAsync(id);
             if (position != null)
@@ -49,6 +112,11 @@ namespace MedicalWeb.Controllers
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        private bool PositionExists(Guid id)
+        {
+            return _context.Positions.Any(e => e.Id == id);
         }
     }
 }

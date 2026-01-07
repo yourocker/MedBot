@@ -5,7 +5,7 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="d-flex align-items-center mb-4">
             <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3">
                 <i class="bi bi-arrow-left"></i>
@@ -13,36 +13,30 @@
             <h2 class="mb-0">Новая должность</h2>
         </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-                <form asp-action="Create" method="post">
-                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary">Основная информация</h5>
+                </div>
+                <div class="card-body p-4">
                     <div class="mb-3">
-                        <label asp-for="Name" class="form-label fw-bold">Наименование</label>
-                        <input asp-for="Name" class="form-control form-control-lg" placeholder="Например: Врач-терапевт" required />
+                        <label asp-for="Name" class="form-label fw-bold">Название должности</label>
+                        <input asp-for="Name" class="form-control" placeholder="Например: Врач-терапевт" required />
                         <span asp-validation-for="Name" class="text-danger"></span>
-                        <div class="form-text">Официальное название должности в организации.</div>
                     </div>
-
-                    <div class="mb-4">
-                        <label asp-for="SystemName" class="form-label fw-bold">Системное имя (код)</label>
-                        <input asp-for="SystemName" class="form-control" placeholder="Например: doc_therapy" />
-                        <span asp-validation-for="SystemName" class="text-danger"></span>
-                        <div class="form-text">Используется для настройки прав доступа (необязательно).</div>
-                    </div>
-
-                    <hr class="my-4">
-
-                    <div class="d-flex justify-content-end gap-2">
-                        <a asp-action="Index" class="btn btn-light px-4">Отмена</a>
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-check-lg me-1"></i> Сохранить
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
-        </div>
+
+            @* Подключаем динамические поля (model="null", т.к. создаем новую) *@
+            <partial name="_DynamicFields" model="null" />
+
+            <div class="d-flex justify-content-end gap-2 mb-5">
+                <a asp-action="Index" class="btn btn-light px-4">Отмена</a>
+                <button type="submit" class="btn btn-primary px-5">Создать</button>
+            </div>
+        </form>
     </div>
 </div>
 

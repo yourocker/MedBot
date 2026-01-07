@@ -6,61 +6,39 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MedicalWeb.Controllers
 {
-    public class DepartmentsController : Controller
+    public class DepartmentsController : BasePlatformController
     {
-        private readonly AppDbContext _context;
-        public DepartmentsController(AppDbContext context) { _context = context; }
+        public DepartmentsController(AppDbContext context) : base(context)
+        {
+        }
 
-        // Список всех отделов
-        // Список всех отделов
+        // Исправлено: добавлена загрузка StaffAppointments и связанных Employee
         public async Task<IActionResult> Index()
         {
-            // 1. Загружаем отделы со всеми связями (сотрудники и их данные)
             var departments = await _context.Departments
-                .Include(d => d.StaffAppointments).ThenInclude(a => a.Employee)
-                .Include(d => d.Manager) 
+                .Include(d => d.Manager) // Загружаем руководителя
+                .Include(d => d.Parent)  // Загружаем родительский отдел для дерева
+                .Include(d => d.StaffAppointments) // Загружаем связи с сотрудниками
+                    .ThenInclude(sa => sa.Employee) // Загружаем данные самих сотрудников
+                .OrderBy(d => d.Name)
                 .ToListAsync();
-
-            // 2. Загружаем список работающих сотрудников для выпадающего списка
-            var staff = await _context.Employees
-                .Where(e => !e.IsDismissed)
-                .OrderBy(e => e.LastName)
-                .Select(e => new { e.Id, FullName = e.LastName + " " + e.FirstName + " " + e.MiddleName })
-                .ToListAsync();
-
-            // 3. ЗАГРУЖАЕМ СПИСОК ДОЛЖНОСТЕЙ (Чтобы не было ошибки в базе)
-            var positions = await _context.Positions
-                .OrderBy(p => p.Name)
-                .ToListAsync();
-
-            // 4. Передаем всё это во Вьюху через ViewBag
-            ViewBag.Staff = new SelectList(staff, "Id", "FullName");
-            ViewBag.Positions = new SelectList(positions, "Id", "Name"); 
 
             return View(departments);
         }
 
-        // Создание: Страница (GET)
         public async Task<IActionResult> Create()
         {
-            ViewBag.ParentDepartments = new SelectList(await _context.Departments.ToListAsync(), "Id", "Name");
-    
-            // Подгружаем активных сотрудников для выпадающего списка
-            var staff = await _context.Employees
-                .Where(e => !e.IsDismissed)
-                .OrderBy(e => e.LastName)
-                .Select(e => new { e.Id, FullName = e.LastName + " " + e.FirstName + " " + e.MiddleName })
-                .ToListAsync();
-    
-            ViewBag.Staff = new SelectList(staff, "Id", "FullName");
+            await LoadDynamicFields("Department");
+            await LoadLookupLists();
             return View();
         }
 
-        // Создание: Сохранение (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Department department)
+        public async Task<IActionResult> Create(Department department, Dictionary<string, string> dynamicProps)
         {
+            SaveDynamicProperties(department, dynamicProps);
+
             if (ModelState.IsValid)
             {
                 department.Id = Guid.NewGuid();
@@ -68,107 +46,68 @@ namespace MedicalWeb.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.ParentDepartments = new SelectList(await _context.Departments.ToListAsync(), "Id", "Name");
+            
+            await LoadDynamicFields("Department");
+            await LoadLookupLists();
             return View(department);
         }
-        
-        // Редактирование: Страница (GET)
-        public async Task<IActionResult> Edit(Guid id)
+
+        public async Task<IActionResult> Edit(Guid? id)
         {
+            if (id == null) return NotFound();
+
             var department = await _context.Departments.FindAsync(id);
             if (department == null) return NotFound();
 
-            var otherDepartments = await _context.Departments
-                .Where(d => d.Id != id)
-                .OrderBy(d => d.Name)
-                .ToListAsync();
-
-            ViewBag.ParentDepartments = new SelectList(otherDepartments, "Id", "Name", department.ParentId);
-
-            // Подгружаем активных сотрудников для выпадающего списка
-            var staff = await _context.Employees
-                .Where(e => !e.IsDismissed)
-                .OrderBy(e => e.LastName)
-                .Select(e => new { e.Id, FullName = e.LastName + " " + e.FirstName + " " + e.MiddleName })
-                .ToListAsync();
-
-            ViewBag.Staff = new SelectList(staff, "Id", "FullName", department.ManagerId);
+            await LoadDynamicFields("Department");
+            await LoadLookupLists(department.Id);
             return View(department);
         }
 
-        // Редактирование: Сохранение (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, Department department)
+        public async Task<IActionResult> Edit(Guid id, Department department, Dictionary<string, string> dynamicProps)
         {
             if (id != department.Id) return NotFound();
 
+            SaveDynamicProperties(department, dynamicProps);
+
             if (ModelState.IsValid)
             {
-                _context.Update(department);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    _context.Update(department);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!DepartmentExists(department.Id)) return NotFound();
+                    else throw;
+                }
                 return RedirectToAction(nameof(Index));
             }
+            
+            await LoadDynamicFields("Department");
+            await LoadLookupLists(department.Id);
             return View(department);
         }
-        
-        // Удаление: (POST)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(Guid id)
+
+        private async Task LoadLookupLists(Guid? currentDeptId = null)
         {
-            // Загружаем отдел вместе со списком сотрудников
-            var department = await _context.Departments
-                .Include(d => d.StaffAppointments)
-                .FirstOrDefaultAsync(d => d.Id == id);
+            var employees = await _context.Employees
+                .OrderBy(e => e.LastName)
+                .Select(e => new { Id = e.Id, FullName = $"{e.LastName} {e.FirstName} {e.MiddleName}" })
+                .ToListAsync();
+            ViewBag.ManagerId = new SelectList(employees, "Id", "FullName");
 
-            if (department == null) return NotFound();
-
-            // 1. Проверка на наличие нижестоящих отделов
-            var hasChildren = await _context.Departments.AnyAsync(d => d.ParentId == id);
-            if (hasChildren)
-            {
-                TempData["Error"] = "Нельзя удалить отдел, у которого есть дочерние подразделения!";
-                return RedirectToAction(nameof(Index));
-            }
-
-            // 2. Проверка на наличие сотрудников
-            if (department.StaffAppointments != null && department.StaffAppointments.Any())
-            {
-                TempData["Error"] = "В отделе числятся сотрудники! Сначала переведите их в другое подразделение.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            _context.Departments.Remove(department);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            var parentsQuery = _context.Departments.AsQueryable();
+            if (currentDeptId.HasValue)
+                parentsQuery = parentsQuery.Where(d => d.Id != currentDeptId.Value);
+            
+            var parents = await parentsQuery.OrderBy(d => d.Name).ToListAsync();
+            ViewBag.ParentId = new SelectList(parents, "Id", "Name");
         }
-        
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AssignEmployee(Guid departmentId, Guid employeeId, Guid positionId)
-        {
-            // Проверяем, нет ли уже точно такой же записи (чтобы не дублировать)
-            var exists = await _context.StaffAppointments
-                .AnyAsync(a => a.DepartmentId == departmentId && 
-                               a.EmployeeId == employeeId && 
-                               a.PositionId == positionId);
 
-            if (!exists)
-            {
-                var appointment = new StaffAppointment
-                {
-                    Id = Guid.NewGuid(),
-                    DepartmentId = departmentId,
-                    EmployeeId = employeeId,
-                    PositionId = positionId // Теперь используем ID должности из формы
-                };
-        
-                _context.StaffAppointments.Add(appointment);
-                await _context.SaveChangesAsync();
-            }
-
-            return RedirectToAction(nameof(Index));
-        }
+        private bool DepartmentExists(Guid id) => _context.Departments.Any(e => e.Id == id);
     }
 }

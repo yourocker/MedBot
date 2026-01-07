@@ -1,46 +1,29 @@
 ﻿@model MedicalBot.Entities.Company.Department
+@{ ViewData["Title"] = "Новый отдел"; }
 
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="d-flex align-items-center mb-4">
-            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3">
-                <i class="bi bi-arrow-left"></i>
-            </a>
-            <h2 class="mb-0">Новое подразделение</h2>
-        </div>
-
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-                <form asp-action="Create" method="post">
-                    @* Название *@
-                    <div class="mb-3">
-                        <label asp-for="Name" class="form-label fw-bold">Название</label>
-                        <input asp-for="Name" class="form-control" placeholder="Например: Отдел кадров" required />
-                    </div>
-
-                    @* Родительское подразделение *@
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Вышестоящее подразделение</label>
-                        <select asp-for="ParentId" class="form-select" asp-items="ViewBag.ParentDepartments">
-                            <option value="">-- Головное подразделение --</option>
-                        </select>
-                    </div>
-
-                    @* РУКОВОДИТЕЛЬ (Новое поле) *@
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Руководитель</label>
-                        <select asp-for="ManagerId" class="form-select" asp-items="ViewBag.Staff">
-                            <option value="">-- Не назначен --</option>
-                        </select>
-                        <div class="form-text small">Необязательно. Можно назначить позже.</div>
-                    </div>
-
-                    <div class="d-flex justify-content-end gap-2">
-                        <a asp-action="Index" class="btn btn-light px-4">Отмена</a>
-                        <button type="submit" class="btn btn-primary px-4">Сохранить</button>
-                    </div>
-                </form>
+<form asp-action="Create" method="post">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label fw-bold">Название</label>
+                <input asp-for="Name" class="form-control" required />
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Родительский отдел</label>
+                    <select asp-for="ParentId" class="form-select" asp-items="ViewBag.ParentId">
+                        <option value="">-- Корень --</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Руководитель</label>
+                    <select asp-for="ManagerId" class="form-select" asp-items="ViewBag.ManagerId">
+                        <option value="">-- Не назначен --</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
-</div>
+    <partial name="_DynamicFields" model="null" />
+    <button type="submit" class="btn btn-primary px-5">Создать</button>
+</form>
