@@ -1,4 +1,20 @@
-﻿<!DOCTYPE html>
+﻿@using MedicalBot.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Context
+
+@{
+// Список имен разделов, которые уже есть в статическом меню (чтобы не дублировать иконки)
+var staticMenuNames = new[] { "Компания", "Пациенты", "Конструктор", "Главная" };
+
+var customCategories = await Context.AppCategories
+.Include(c => c.Apps)
+.Where(c => !staticMenuNames.Contains(c.Name)) // Фильтруем дубликаты по имени
+.OrderBy(c => c.SortOrder)
+.ToListAsync();
+
+var controller = ViewContext.RouteData.Values["Controller"]?.ToString();
+}
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
@@ -7,42 +23,17 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        :root {
-            --main-bg: #1e2229;
-            --sub-bg: #ffffff;
-            --accent: #0d6efd;
-        }
+        :root { --main-bg: #1e2229; --sub-bg: #ffffff; --accent: #0d6efd; }
         body { background-color: #f4f7f6; overflow: hidden; height: 100vh; display: flex; margin: 0; font-family: 'Segoe UI', sans-serif; }
 
-        /* Уровень 1: Только иконки */
-        #nav-main {
-            width: 70px; background: var(--main-bg);
-            display: flex; flex-direction: column; align-items: center;
-            padding-top: 20px; z-index: 1050; flex-shrink: 0;
-        }
-
-        .main-btn {
-            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
-            color: #a0a6ad; font-size: 1.5rem; margin-bottom: 12px;
-            cursor: pointer;
-            border-radius: 10px; transition: 0.2s; text-decoration: none;
-        }
+        #nav-main { width: 70px; background: var(--main-bg); display: flex; flex-direction: column; align-items: center; padding-top: 20px; z-index: 1050; flex-shrink: 0; }
+        .main-btn { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; color: #a0a6ad; font-size: 1.5rem; margin-bottom: 12px; cursor: pointer; border-radius: 10px; transition: 0.2s; text-decoration: none; }
         .main-btn:hover, .main-btn.active { background: rgba(255,255,255,0.1); color: #fff; }
         .main-btn.active { color: var(--accent); background: #fff; }
 
-        /* Уровень 2: Меню раздела */
-        #nav-sub {
-            width: 240px; background: var(--sub-bg);
-            border-right: 1px solid #dee2e6;
-            display: flex; flex-direction: column;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.03);
-            flex-shrink: 0;
-        }
+        #nav-sub { width: 240px; background: var(--sub-bg); border-right: 1px solid #dee2e6; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.03); flex-shrink: 0; }
         .sub-header { padding: 25px 20px; font-weight: 700; font-size: 1.1rem; border-bottom: 1px solid #f0f0f0; }
-        .sub-link {
-            padding: 12px 20px; color: #495057; text-decoration: none;
-            display: flex; align-items: center; transition: 0.15s;
-        }
+        .sub-link { padding: 12px 20px; color: #495057; text-decoration: none; display: flex; align-items: center; transition: 0.15s; }
         .sub-link:hover { background: #f8f9fa; color: var(--accent); }
         .sub-link.active { color: var(--accent); background: #eef5ff; font-weight: 600; }
         .sub-link i { margin-right: 12px; }
@@ -55,30 +46,38 @@
 
 <nav id="nav-main">
     <div id="sortable-menu" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-        <a href="/" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")" data-id="home" title="Дашборд">
+        @* СТАТИЧЕСКИЕ ПУНКТЫ *@
+        <a href="/" class="main-btn @(controller == "Home" ? "active" : "")" data-id="home" title="Дашборд">
             <i class="bi bi-speedometer2"></i>
         </a>
-        <a href="/Employees" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Positions" || ViewContext.RouteData.Values["Controller"]?.ToString() == "Departments" || ViewContext.RouteData.Values["Controller"]?.ToString() == "Employees" ? "active" : "")" data-id="company" title="Компания">
+        <a href="/Employees" class="main-btn @(controller == "Positions" || controller == "Departments" || controller == "Employees" ? "active" : "")" data-id="company" title="Компания">
             <i class="bi bi-building"></i>
         </a>
-        <a href="/Patients" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Patients" ? "active" : "")" data-id="patients" title="Пациенты">
+        <a href="/Patients" class="main-btn @(controller == "Patients" ? "active" : "")" data-id="patients" title="Пациенты">
             <i class="bi bi-people"></i>
         </a>
-        <a href="/AppDefinitions" class="main-btn @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AppDefinitions" || ViewContext.RouteData.Values["Controller"]?.ToString() == "AppCategories" ? "active" : "")" data-id="settings" title="Конструктор">
+
+        @* ДИНАМИЧЕСКИЕ ПУНКТЫ ИЗ БД (БЕЗ ДУБЛЕЙ) *@
+        @foreach (var cat in customCategories)
+        {
+        var isActive = cat.Apps.Any(a => a.EntityCode == controller);
+        <a href="/Data/@cat.Apps.FirstOrDefault()?.EntityCode" class="main-btn @(isActive ? "active" : "")" data-id="@cat.Id" title="@cat.Name">
+            <i class="bi bi-@cat.Icon"></i>
+        </a>
+        }
+
+        @* КОНСТРУКТОР *@
+        <a href="/AppDefinitions" class="main-btn @(controller == "AppDefinitions" || controller == "AppCategories" ? "active" : "")" data-id="settings" title="Конструктор">
             <i class="bi bi-gear"></i>
         </a>
     </div>
 </nav>
 
 <nav id="nav-sub">
-    @{
-    var controller = ViewContext.RouteData.Values["Controller"]?.ToString();
-    }
-
     @if (controller == "Positions" || controller == "Departments" || controller == "Employees")
     {
     <div class="sub-header">Компания</div>
-    <a href="/Departments" class="sub-link"><i class="bi bi-diagram-3"></i> Оргструктура</a>
+    <a href="/Departments" class="sub-link @(controller == "Departments" ? "active" : "")"><i class="bi bi-diagram-3"></i> Оргструктура</a>
     <a href="/Employees" class="sub-link @(controller == "Employees" ? "active" : "")"><i class="bi bi-person-badge"></i> Сотрудники</a>
     <a href="/Positions" class="sub-link @(controller == "Positions" ? "active" : "")"><i class="bi bi-briefcase"></i> Должности</a>
     }
@@ -94,6 +93,18 @@
     <a href="/AppDefinitions" class="sub-link @(controller == "AppDefinitions" ? "active" : "")"><i class="bi bi-layers"></i> Список сущностей</a>
     <a href="/AppCategories" class="sub-link @(controller == "AppCategories" ? "active" : "")"><i class="bi bi-folder2-open"></i> Разделы меню</a>
     <a href="#" class="sub-link text-muted"><i class="bi bi-database-gear"></i> Импорт данных</a>
+    }
+    @* ЛОГИКА ДЛЯ ДИНАМИЧЕСКИХ РАЗДЕЛОВ *@
+    else if (customCategories.Any(c => c.Apps.Any(a => a.EntityCode == controller)))
+    {
+    var activeCat = customCategories.First(c => c.Apps.Any(a => a.EntityCode == controller));
+    <div class="sub-header">@activeCat.Name</div>
+    @foreach (var app in activeCat.Apps)
+    {
+    <a href="/Data/@app.EntityCode" class="sub-link @(controller == app.EntityCode ? "active" : "")">
+        <i class="bi bi-@app.Icon"></i> @app.Name
+    </a>
+    }
     }
     else
     {
@@ -114,16 +125,14 @@
 
 <script>
     const el = document.getElementById('sortable-menu');
-    if (el) {
-        Sortable.create(el, {
-            animation: 150,
-            ghostClass: 'sortable-ghost',
-            store: {
-                get: (s) => localStorage.getItem('main-menu-order')?.split('|') || [],
-                set: (s) => localStorage.setItem('main-menu-order', s.toArray().join('|'))
-            }
-        });
-    }
+    Sortable.create(el, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        store: {
+            get: (s) => localStorage.getItem('main-menu-order')?.split('|') || [],
+            set: (s) => localStorage.setItem('main-menu-order', s.toArray().join('|'))
+        }
+    });
 
     $(document).ready(function() {
         const order = localStorage.getItem('main-menu-order');
@@ -136,7 +145,6 @@
         }
     });
 </script>
-
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
