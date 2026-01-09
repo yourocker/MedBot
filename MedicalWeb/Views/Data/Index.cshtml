@@ -5,13 +5,13 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="mb-0"><i class="bi bi-@definition.Icon me-2"></i>@definition.Name</h2>
-        <small class="text-muted">Реестр записей для сущности @definition.EntityCode</small>
+        <h2 class="mb-0"><i class="bi bi-@definition?.Icon me-2"></i>@definition?.Name</h2>
+        <small class="text-muted">Реестр записей для сущности @definition?.EntityCode</small>
     </div>
-    @* ИСПРАВЛЕНО: Теперь кнопка ведет на метод создания записи для конкретной сущности *@
-    <a asp-controller="Data" 
+    @* ФАКТ: Мы используем GenericObjects, потому что там УЖЕ есть Create.cshtml *@
+    <a asp-controller="GenericObjects" 
        asp-action="Create" 
-       asp-route-entityCode="@definition.EntityCode" 
+       asp-route-entityCode="@definition?.EntityCode" 
        class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Добавить запись
     </a>

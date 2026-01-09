@@ -1,60 +1,112 @@
 ﻿@model IEnumerable<MedicalBot.Entities.Platform.GenericObject>
 @using MedicalBot.Entities.Platform
-@using System.Text.Json
+@using Newtonsoft.Json
 
 @{
-    var definition = ViewBag.Definition as MedicalBot.Entities.Platform.AppDefinition;
-    ViewData["Title"] = definition?.Name ?? "Объекты";
-    var fields = definition?.Fields?.OrderBy(f => f.Label).ToList() ?? new List<AppFieldDefinition>();
+    var definition = ViewBag.Definition as AppDefinition;
+    ViewData["Title"] = definition?.Name;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-box-seam me-2"></i>@ViewData["Title"]</h2>
-    <a asp-action="Create" asp-route-entityCode="@definition?.EntityCode" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> Добавить
+    <div>
+        <h2 class="mb-0">
+            @if (!string.IsNullOrEmpty(definition?.Icon))
+            {
+                <i class="bi bi-@definition.Icon me-2"></i>
+            }
+            @definition?.Name
+        </h2>
+        <small class="text-muted">Реестр записей</small>
+    </div>
+    <a asp-controller="GenericObjects" 
+       asp-action="Create" 
+       asp-route-entityCode="@definition?.EntityCode" 
+       class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Добавить запись
     </a>
 </div>
 
 <div class="card shadow-sm border-0">
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="bg-light">
-                <tr>
-                    <th class="ps-3">Наименование</th>
-                    @foreach (var field in fields.Take(3)) 
-                    {
-                        <th>@field.Label</th>
-                    }
-                    <th class="text-end pe-3">Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model) 
-                {
-                    var props = new Dictionary<string, string>();
-                    if (!string.IsNullOrEmpty(item.Properties)) 
-                    {
-                        try {
-                            props = JsonSerializer.Deserialize<Dictionary<string, string>>(item.Properties) ?? props;
-                        } catch { /* ignore */ }
-                    }
-                    <tr>
-                        <td class="ps-3">
-                            <div class="fw-bold text-primary">@item.Name</div>
-                            <small class="text-muted">ID: @item.Id.ToString().Substring(0,8)</small>
-                        </td>
-                        @foreach (var field in fields.Take(3)) 
+    <div class="card-body">
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 150px;">Дата</th>
+                            <th>Название</th> @* Основное поле Name из GenericObject *@
+                            @if (definition?.Fields != null)
+                            {
+                                foreach (var field in definition.Fields.OrderBy(f => f.SortOrder))
+                                {
+                                    <th>@field.Label</th>
+                                }
+                            }
+                            <th style="width: 120px;" class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
                         {
-                            <td>@(props.ContainsKey(field.SystemName) ? props[field.SystemName] : "-")</td>
+                            // Распарсим JSON один раз для всей строки
+                            var dynamicValues = !string.IsNullOrEmpty(item.Properties) 
+                                ? JsonConvert.DeserializeObject<Dictionary<string, string>>(item.Properties) 
+                                : new Dictionary<string, string>();
+
+                            <tr>
+                                @* ФАКТ: Добавили .ToLocalTime(), чтобы время в таблице совпадало с твоим *@
+                                <td class="small text-muted">@item.CreatedAt.ToLocalTime().ToString("g")</td>
+                                <td><strong>@item.Name</strong></td>
+                                @if (definition?.Fields != null)
+                                {
+                                    foreach (var field in definition.Fields.OrderBy(f => f.SortOrder))
+                                    {
+                                        <td>
+                                            @if (dynamicValues != null && dynamicValues.ContainsKey(field.SystemName))
+                                            {
+                                                @dynamicValues[field.SystemName]
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">-</span>
+                                            }
+                                        </td>
+                                    }
+                                }
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <a asp-controller="GenericObjects" 
+                                           asp-action="Edit" 
+                                           asp-route-id="@item.Id" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+
+                                        <form asp-controller="GenericObjects" 
+                                              asp-action="Delete" 
+                                              asp-route-id="@item.Id" 
+                                              method="post" 
+                                              onsubmit="return confirm('Удалить запись?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
                         }
-                        <td class="text-end pe-3">
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="py-5 text-center text-muted">
+                <i class="bi bi-database-exclamation fs-1 mb-3 d-block text-warning"></i>
+                <h5>Записей пока нет</h5>
+            </div>
+        }
     </div>
 </div>

@@ -7,7 +7,6 @@ namespace MedicalWeb.Controllers;
 
 public class GenericObjectsController(AppDbContext context) : BasePlatformController(context)
 {
-    // GET: /GenericObjects/Index?entityCode=Equipment
     public async Task<IActionResult> Index(string entityCode)
     {
         if (string.IsNullOrEmpty(entityCode)) return NotFound();
@@ -34,6 +33,7 @@ public class GenericObjectsController(AppDbContext context) : BasePlatformContro
         
         await LoadDynamicFields(entityCode);
         ViewBag.EntityCode = entityCode;
+        
         return View();
     }
 
@@ -41,8 +41,8 @@ public class GenericObjectsController(AppDbContext context) : BasePlatformContro
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(GenericObject obj, Dictionary<string, string> dynamicProps)
     {
-        // Перед валидацией устанавливаем дату, так как она Required
         obj.CreatedAt = DateTime.UtcNow;
+        // Передаем свойства в метод базового контроллера (он запишет их в Properties)
         SaveDynamicProperties(obj, dynamicProps);
 
         if (ModelState.IsValid)
@@ -50,7 +50,8 @@ public class GenericObjectsController(AppDbContext context) : BasePlatformContro
             obj.Id = Guid.NewGuid();
             _context.Add(obj);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index), new { entityCode = obj.EntityCode });
+            
+            return Redirect($"/Data/{obj.EntityCode}");
         }
 
         await LoadDynamicFields(obj.EntityCode);
@@ -79,10 +80,25 @@ public class GenericObjectsController(AppDbContext context) : BasePlatformContro
         {
             _context.Update(obj);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index), new { entityCode = obj.EntityCode });
+            
+            return Redirect($"/Data/{obj.EntityCode}");
         }
 
         await LoadDynamicFields(obj.EntityCode);
         return View(obj);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var obj = await _context.GenericObjects.FindAsync(id);
+        if (obj == null) return NotFound();
+
+        var entityCode = obj.EntityCode;
+        _context.GenericObjects.Remove(obj);
+        await _context.SaveChangesAsync();
+
+        return Redirect($"/Data/{entityCode}");
     }
 }
