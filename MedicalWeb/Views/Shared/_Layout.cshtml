@@ -3,16 +3,16 @@
 @inject AppDbContext Context
 
 @{
-// Список имен разделов, которые уже есть в статическом меню (чтобы не дублировать иконки)
-var staticMenuNames = new[] { "Компания", "Пациенты", "Конструктор", "Главная" };
-
+// 1. Загружаем категории. Костыли с именами убраны, т.к. мы почистили БД.
 var customCategories = await Context.AppCategories
 .Include(c => c.Apps)
-.Where(c => !staticMenuNames.Contains(c.Name)) // Фильтруем дубликаты по имени
 .OrderBy(c => c.SortOrder)
 .ToListAsync();
 
 var controller = ViewContext.RouteData.Values["Controller"]?.ToString();
+
+// 2. Ключевое исправление: ловим entityCode из URL для динамических сущностей
+var entityCodeFromUrl = ViewContext.RouteData.Values["entityCode"]?.ToString();
 }
 <!DOCTYPE html>
 <html lang="ru">
@@ -57,10 +57,11 @@ var controller = ViewContext.RouteData.Values["Controller"]?.ToString();
             <i class="bi bi-people"></i>
         </a>
 
-        @* ДИНАМИЧЕСКИЕ ПУНКТЫ ИЗ БД (БЕЗ ДУБЛЕЙ) *@
+        @* ДИНАМИЧЕСКИЕ ПУНКТЫ *@
         @foreach (var cat in customCategories)
         {
-        var isActive = cat.Apps.Any(a => a.EntityCode == controller);
+        @* Кнопка активна, если любая вложенная сущность совпадает с тем, что в URL *@
+        var isActive = cat.Apps.Any(a => a.EntityCode == entityCodeFromUrl);
         <a href="/Data/@cat.Apps.FirstOrDefault()?.EntityCode" class="main-btn @(isActive ? "active" : "")" data-id="@cat.Id" title="@cat.Name">
             <i class="bi bi-@cat.Icon"></i>
         </a>
@@ -94,14 +95,14 @@ var controller = ViewContext.RouteData.Values["Controller"]?.ToString();
     <a href="/AppCategories" class="sub-link @(controller == "AppCategories" ? "active" : "")"><i class="bi bi-folder2-open"></i> Разделы меню</a>
     <a href="#" class="sub-link text-muted"><i class="bi bi-database-gear"></i> Импорт данных</a>
     }
-    @* ЛОГИКА ДЛЯ ДИНАМИЧЕСКИХ РАЗДЕЛОВ *@
-    else if (customCategories.Any(c => c.Apps.Any(a => a.EntityCode == controller)))
+    @* ИСПРАВЛЕННАЯ ЛОГИКА: Поиск активного динамического раздела *@
+    else if (customCategories.Any(c => c.Apps.Any(a => a.EntityCode == entityCodeFromUrl)))
     {
-    var activeCat = customCategories.First(c => c.Apps.Any(a => a.EntityCode == controller));
+    var activeCat = customCategories.First(c => c.Apps.Any(a => a.EntityCode == entityCodeFromUrl));
     <div class="sub-header">@activeCat.Name</div>
     @foreach (var app in activeCat.Apps)
     {
-    <a href="/Data/@app.EntityCode" class="sub-link @(controller == app.EntityCode ? "active" : "")">
+    <a href="/Data/@app.EntityCode" class="sub-link @(entityCodeFromUrl == app.EntityCode ? "active" : "")">
         <i class="bi bi-@app.Icon"></i> @app.Name
     </a>
     }
