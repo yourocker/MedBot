@@ -171,5 +171,34 @@ namespace MedicalWeb.Controllers
             }
             return NotFound();
         }
+        // GET: AppDefinitions/Delete/id
+        public async Task<IActionResult> Delete(Guid? id)
+        {
+            if (id == null) return NotFound();
+
+            var definition = await _context.AppDefinitions
+                .Include(a => a.Category)
+                .FirstOrDefaultAsync(m => m.Id == id);
+        
+            if (definition == null) return NotFound();
+
+            return View(definition);
+        }
+
+// POST: AppDefinitions/Delete/id
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(Guid id)
+        {
+            var definition = await _context.AppDefinitions.FindAsync(id);
+            if (definition != null)
+            {
+                // Удаляем саму сущность (каскадное удаление полей должно быть в БД, 
+                // либо добавим здесь, если нужно)
+                _context.AppDefinitions.Remove(definition);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Index));
+        }
     }
 }
