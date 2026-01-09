@@ -8,18 +8,30 @@ namespace MedicalBot.Entities.Platform
         public Guid Id { get; set; }
 
         [Required]
-        [MaxLength(100)]
-        public string Name { get; set; }
+        [Display(Name = "Название")]
+        public string Name { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(50)]
-        public string EntityCode { get; set; }
+        [Display(Name = "Системный код")]
+        public string EntityCode { get; set; } = string.Empty;
 
-        public bool IsSystem { get; set; } // true для Employee, false для кастомных
+        // Добавляем это поле
+        [Display(Name = "Описание")]
+        public string? Description { get; set; }
 
-        public string? Icon { get; set; } // Название иконки bootstrap-icons
+        [Display(Name = "Иконка")]
+        public string Icon { get; set; } = "gear";
+
+        [Display(Name = "Системная")]
+        public bool IsSystem { get; set; }
+        
+        // Добавь эти поля внутрь класса AppDefinition
+        [Display(Name = "Раздел меню")]
+        public Guid? AppCategoryId { get; set; }
+
+        public AppCategory? Category { get; set; }
 
         // Навигационное свойство для полей
-        public virtual ICollection<AppFieldDefinition> Fields { get; set; } = new List<AppFieldDefinition>();
+        public List<AppFieldDefinition> Fields { get; set; } = new();
     }
 }

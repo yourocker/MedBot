@@ -31,6 +31,8 @@ namespace MedicalBot.Data
         
         // ---УНИВЕРСАЛЬНЫЕ ОБЪЕКТЫ ---
         public DbSet<GenericObject> GenericObjects { get; set; }
+        
+        public DbSet<AppCategory> AppCategories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -75,6 +77,7 @@ namespace MedicalBot.Data
                 // Настройки поля тоже будем хранить в JSON (для типов Table, Link и т.д.)
                 entity.Property(f => f.SettingsJson).HasColumnType("jsonb");
             });
+            
         }
     }
 }

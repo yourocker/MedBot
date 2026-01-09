@@ -23,7 +23,7 @@ namespace MedicalWeb.Controllers
         protected async Task LoadDynamicFields(string systemCode)
         {
             var fields = await _context.AppFieldDefinitions
-                .Where(f => f.AppDefinition.SystemCode == systemCode)
+                .Where(f => f.AppDefinition.EntityCode == systemCode)
                 .OrderBy(f => f.SortOrder)
                 .ToListAsync();
 
