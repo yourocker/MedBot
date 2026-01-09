@@ -428,7 +428,7 @@ namespace MedicalBot.Migrations
             modelBuilder.Entity("MedicalBot.Entities.Platform.AppDefinition", b =>
                 {
                     b.HasOne("MedicalBot.Entities.Platform.AppCategory", "Category")
-                        .WithMany("Definitions")
+                        .WithMany("Apps")
                         .HasForeignKey("AppCategoryId");
 
                     b.Navigation("Category");
@@ -484,7 +484,7 @@ namespace MedicalBot.Migrations
 
             modelBuilder.Entity("MedicalBot.Entities.Platform.AppCategory", b =>
                 {
-                    b.Navigation("Definitions");
+                    b.Navigation("Apps");
                 });
 
             modelBuilder.Entity("MedicalBot.Entities.Platform.AppDefinition", b =>

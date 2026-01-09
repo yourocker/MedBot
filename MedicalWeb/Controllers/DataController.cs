@@ -4,18 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MedicalWeb.Controllers
 {
-    // Этот контроллер будет обрабатывать пути вида /Data/SomeEntity
     public class DataController : BasePlatformController
     {
         public DataController(AppDbContext context) : base(context)
         {
         }
 
-        // Главный метод реестра
         [Route("Data/{entityCode}")]
         public async Task<IActionResult> Index(string entityCode)
         {
-            // Находим определение сущности в базе
             var definition = await _context.AppDefinitions
                 .Include(a => a.Fields)
                 .FirstOrDefaultAsync(a => a.EntityCode == entityCode);
@@ -25,9 +22,29 @@ namespace MedicalWeb.Controllers
             ViewBag.Definition = definition;
             ViewBag.EntityCode = entityCode;
 
-            // В будущем здесь мы будем подгружать данные из GenericObjects
-            // Пока просто возвращаем пустой список для теста
             return View();
+        }
+
+        public async Task<IActionResult> Create(string entityCode)
+        {
+            if (string.IsNullOrEmpty(entityCode)) return NotFound();
+
+            var definition = await _context.AppDefinitions
+                .Include(a => a.Fields)
+                .FirstOrDefaultAsync(a => a.EntityCode == entityCode);
+
+            if (definition == null) return NotFound();
+
+            // Передаем объект как модель, чтобы View его видел
+            return View(definition);
+        }
+
+        // Заглушка метода сохранения, чтобы View не выдавал ошибку
+        [HttpPost]
+        public async Task<IActionResult> Save(string entityCode, Dictionary<string, string> values)
+        {
+            // Логику сохранения напишем следующим шагом
+            return RedirectToAction("Index", new { entityCode });
         }
     }
 }

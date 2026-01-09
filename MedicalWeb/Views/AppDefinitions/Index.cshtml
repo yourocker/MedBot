@@ -49,6 +49,7 @@
                             }
                         </td>
                         <td>
+                            @* Переход к полям доступен ВСЕМ сущностям *@
                             <a asp-action="Fields" asp-route-id="@item.Id" class="text-decoration-none">
                                 <span class="badge bg-light text-primary border">
                                     <i class="bi bi-list-check me-1"></i> @(item.Fields?.Count ?? 0) полей
@@ -57,20 +58,27 @@
                         </td>
                         <td class="text-end pe-4">
                             <div class="btn-group btn-group-sm">
-                                @* Кнопка настройки полей *@
+                                @* ГЛАВНАЯ КНОПКА: Настройка полей (доступна для расширения системных сущностей) *@
                                 <a asp-action="Fields" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Настроить поля">
                                     <i class="bi bi-gear-fill"></i>
                                 </a>
-                                @* Кнопка редактирования сущности (привязка к разделу, смена иконки) *@
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary" title="Редактировать параметры">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                @* Удаление только для несистемных *@
+
                                 @if (!item.IsSystem)
                                 {
+                                    @* Редактирование и удаление только для кастомных сущностей *@
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary" title="Редактировать параметры">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
                                     <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger" title="Удалить">
                                         <i class="bi bi-trash"></i>
                                     </a>
+                                }
+                                else
+                                {
+                                    @* Для системных сущностей показываем замок вместо редактирования/удаления *@
+                                    <button type="button" class="btn btn-outline-secondary disabled" title="Системная сущность: параметры защищены">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </button>
                                 }
                             </div>
                         </td>

@@ -27,16 +27,36 @@
             {
                 <tr>
                     <td class="ps-4">@item.SortOrder</td>
-                    <td><i class="bi bi-@item.Icon"></i> (@item.Icon)</td>
-                    <td class="fw-bold">@item.Name</td>
+                    <td>
+                        <i class="bi bi-@item.Icon text-primary me-2"></i> 
+                        <span class="text-muted small">(@item.Icon)</span>
+                    </td>
+                    <td>
+                        <span class="fw-bold">@item.Name</span>
+                        @if (item.IsSystem)
+                        {
+                            <span class="badge bg-light text-muted border ms-2">Системный</span>
+                        }
+                    </td>
                     <td class="text-end pe-4">
                         <div class="btn-group btn-group-sm">
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary" title="Редактировать">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger" title="Удалить">
-                                <i class="bi bi-trash"></i>
-                            </a>
+                            @if (!item.IsSystem)
+                            {
+                                @* Для твоих разделов кнопки активны *@
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary" title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger" title="Удалить">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                @* Для системных (Компания, Пациенты) — замок, как в сущностях *@
+                                <button type="button" class="btn btn-outline-secondary disabled" title="Системный раздел защищен">
+                                    <i class="bi bi-lock-fill"></i>
+                                </button>
+                            }
                         </div>
                     </td>
                 </tr>

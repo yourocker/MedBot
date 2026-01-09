@@ -8,7 +8,11 @@
         <h2 class="mb-0"><i class="bi bi-@definition.Icon me-2"></i>@definition.Name</h2>
         <small class="text-muted">Реестр записей для сущности @definition.EntityCode</small>
     </div>
-    <a href="#" class="btn btn-primary">
+    @* ИСПРАВЛЕНО: Теперь кнопка ведет на метод создания записи для конкретной сущности *@
+    <a asp-controller="Data" 
+       asp-action="Create" 
+       asp-route-entityCode="@definition.EntityCode" 
+       class="btn btn-primary">
         <i class="bi bi-plus-lg"></i> Добавить запись
     </a>
 </div>
