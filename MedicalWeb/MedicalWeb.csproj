@@ -23,6 +23,13 @@
 
     <ItemGroup>
       <Folder Include="wwwroot\uploads\" />
+      <Folder Include="wwwroot\uploads\temp\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\5baf94d1-86ca-419b-ba88-d769be7b0cab\00. Исходник.ai" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\f43b7997-7bd5-4f04-b8d7-08044aa63a05\02_Перечень_лечебных_учреждений_2025.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\temp\9cefcbab-2e97-48ba-ab4f-74265944a839\02_Перечень_лечебных_учреждений_2025.pdf" />
     </ItemGroup>
 
 </Project>

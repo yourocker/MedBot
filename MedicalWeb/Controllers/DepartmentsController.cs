@@ -7,13 +7,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Hosting; // ДОБАВЛЕНО: Для IWebHostEnvironment
+using Microsoft.AspNetCore.Hosting;
 
 namespace MedicalWeb.Controllers
 {
     public class DepartmentsController : BasePlatformController
     {
-        // ИСПРАВЛЕНО: Конструктор теперь принимает два параметра и передает их родителю
         public DepartmentsController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
             : base(context, hostingEnvironment)
         {
@@ -43,13 +42,23 @@ namespace MedicalWeb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Department department, IFormCollection form)
         {
+            // 1. Загрузка во временную папку
             await SaveDynamicProperties(department, form, "Department");
 
             if (ModelState.IsValid)
             {
                 department.Id = Guid.NewGuid();
                 _context.Add(department);
+                
+                // 2. Первичное сохранение
                 await _context.SaveChangesAsync();
+
+                // 3. Перемещение файлов в папку подразделения
+                FinalizeDynamicFilePaths(department, "Department", department.Id.ToString());
+
+                // 4. Обновление путей в БД
+                await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
             
@@ -76,12 +85,16 @@ namespace MedicalWeb.Controllers
         {
             if (id != department.Id) return NotFound();
 
+            // 1. Загрузка новых файлов во временную папку
             await SaveDynamicProperties(department, form, "Department");
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    // 2. Перемещение новых файлов в папку подразделения
+                    FinalizeDynamicFilePaths(department, "Department", department.Id.ToString());
+
                     _context.Update(department);
                     await _context.SaveChangesAsync();
                 }

@@ -6,13 +6,12 @@ using MedicalBot.Entities.Company;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Hosting; // ДОБАВЛЕНО: Для IWebHostEnvironment
+using Microsoft.AspNetCore.Hosting;
 
 namespace MedicalWeb.Controllers
 {
     public class PositionsController : BasePlatformController
     {
-        // ИСПРАВЛЕНО: Один четкий конструктор, передающий оба параметра в базу
         public PositionsController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
             : base(context, hostingEnvironment)
         {
@@ -36,13 +35,23 @@ namespace MedicalWeb.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Position position, IFormCollection form)
         {
+            // 1. Загрузка файлов во временную папку
             await SaveDynamicProperties(position, form, "Position");
 
             if (ModelState.IsValid)
             {
                 position.Id = Guid.NewGuid();
                 _context.Add(position);
+                
+                // 2. Сохраняем запись
                 await _context.SaveChangesAsync();
+                
+                // 3. Перемещаем файлы из Temp в папку должности
+                FinalizeDynamicFilePaths(position, "Position", position.Id.ToString());
+                
+                // 4. Обновляем пути
+                await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
             
@@ -69,12 +78,16 @@ namespace MedicalWeb.Controllers
         {
             if (id != position.Id) return NotFound();
 
+            // 1. Загрузка новых файлов во временную папку
             await SaveDynamicProperties(position, form, "Position");
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    // 2. Перемещаем новые файлы в постоянную папку
+                    FinalizeDynamicFilePaths(position, "Position", position.Id.ToString());
+
                     _context.Update(position);
                     await _context.SaveChangesAsync();
                 }

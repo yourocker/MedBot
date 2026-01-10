@@ -7,13 +7,12 @@ using MedicalBot.Entities.Company;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Hosting; // ДОБАВЛЕНО: Для IWebHostEnvironment
+using Microsoft.AspNetCore.Hosting;
 
 namespace MedicalWeb.Controllers
 {
     public class EmployeesController : BasePlatformController
     {
-        // ИСПРАВЛЕНО: Конструктор теперь принимает два параметра и передает их родителю
         public EmployeesController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
             : base(context, hostingEnvironment)
         {
@@ -51,6 +50,7 @@ namespace MedicalWeb.Controllers
             employee.Phones = Phones?.Where(p => !string.IsNullOrWhiteSpace(p)).ToList() ?? new List<string>();
             employee.Emails = Emails?.Where(e => !string.IsNullOrWhiteSpace(e)).ToList() ?? new List<string>();
 
+            // 1. Сохраняем во временную папку
             await SaveDynamicProperties(employee, form, "Employee");
 
             if (ModelState.IsValid)
@@ -76,7 +76,15 @@ namespace MedicalWeb.Controllers
                     }
                 }
 
+                // 2. Первое сохранение (создаем запись в БД)
                 await _context.SaveChangesAsync();
+
+                // 3. Перемещаем файлы из Temp в постоянную папку
+                FinalizeDynamicFilePaths(employee, "Employee", employee.Id.ToString());
+
+                // 4. Обновляем пути в БД
+                await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
 
@@ -111,12 +119,16 @@ namespace MedicalWeb.Controllers
         {
             if (id != employee.Id) return NotFound();
 
+            // 1. Сохраняем новые файлы во временную папку
             await SaveDynamicProperties(employee, form, "Employee");
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    // 2. Перемещаем новые файлы в папку записи
+                    FinalizeDynamicFilePaths(employee, "Employee", employee.Id.ToString());
+
                     employee.Phones = Phones?.Where(p => !string.IsNullOrWhiteSpace(p)).ToList() ?? new List<string>();
                     employee.Emails = Emails?.Where(e => !string.IsNullOrWhiteSpace(e)).ToList() ?? new List<string>();
                     

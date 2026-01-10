@@ -6,13 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting; // Для доступа к путям файлов
+using Microsoft.AspNetCore.Hosting; 
 
 namespace MedicalWeb.Controllers
 {
     public class PatientsController : BasePlatformController
     {
-        // Исправленный конструктор
         public PatientsController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
             : base(context, hostingEnvironment)
         {
@@ -30,7 +29,6 @@ namespace MedicalWeb.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            // Используем стандартизированный метод загрузки полей
             await LoadDynamicFields("patient");
             
             var definition = await _context.AppDefinitions
@@ -49,15 +47,23 @@ namespace MedicalWeb.Controllers
         {
             obj.EntityCode = "patient";
             
-            // Вызываем асинхронный метод из базового контроллера для сохранения данных и файлов
+            // 1. Сохраняем файлы во временную папку (Temp)
             await SaveDynamicProperties(obj, form, "patient");
             
             if (ModelState.IsValid)
             {
+                // 2. Присваиваем ID и сохраняем запись (чтобы получить валидную запись в БД)
                 obj.Id = Guid.NewGuid();
                 obj.CreatedAt = DateTime.UtcNow;
                 _context.GenericObjects.Add(obj);
                 await _context.SaveChangesAsync();
+
+                // 3. ПЕРЕМЕЩАЕМ файлы из Temp в постоянную папку /uploads/patient/{ID}/
+                FinalizeDynamicFilePaths(obj, "patient", obj.Id.ToString());
+
+                // 4. Сохраняем обновленные пути в БД
+                await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
             

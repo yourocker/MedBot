@@ -6,7 +6,7 @@ using MedicalBot.Entities.Platform;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Hosting; // Добавлено для IWebHostEnvironment
+using Microsoft.AspNetCore.Hosting;
 
 namespace MedicalWeb.Controllers;
 
@@ -18,7 +18,7 @@ public class GenericObjectsController(AppDbContext context, IWebHostEnvironment 
         
         var definition = await _context.AppDefinitions
             .Include(d => d.Fields)
-            .OrderBy(d => d.Name) // Добавлена сортировка для стабильности
+            .OrderBy(d => d.Name)
             .FirstOrDefaultAsync(d => d.EntityCode == entityCode);
 
         if (definition == null) return NotFound();
@@ -50,12 +50,20 @@ public class GenericObjectsController(AppDbContext context, IWebHostEnvironment 
     {
         obj.CreatedAt = DateTime.UtcNow;
 
+        // 1. Сохранение во временную папку
         await SaveDynamicProperties(obj, form, obj.EntityCode);
 
         if (ModelState.IsValid)
         {
             obj.Id = Guid.NewGuid();
             _context.Add(obj);
+            // 2. Сохраняем, чтобы убедиться, что запись создана
+            await _context.SaveChangesAsync();
+            
+            // 3. Перемещаем файлы из Temp в постоянную папку и обновляем пути
+            FinalizeDynamicFilePaths(obj, obj.EntityCode, obj.Id.ToString());
+            
+            // 4. Сохраняем обновленные пути
             await _context.SaveChangesAsync();
             
             return Redirect($"/Data/{obj.EntityCode}");
@@ -83,12 +91,16 @@ public class GenericObjectsController(AppDbContext context, IWebHostEnvironment 
     {
         if (id != obj.Id) return NotFound();
 
+        // 1. Сохранение новых файлов во временную папку
         await SaveDynamicProperties(obj, form, obj.EntityCode);
 
         if (ModelState.IsValid)
         {
             try 
             {
+                // 2. Перемещаем новые файлы из Temp в папку записи (ID у нас уже есть)
+                FinalizeDynamicFilePaths(obj, obj.EntityCode, obj.Id.ToString());
+
                 _context.Update(obj);
                 await _context.SaveChangesAsync();
             }

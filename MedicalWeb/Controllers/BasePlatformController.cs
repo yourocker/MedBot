@@ -36,13 +36,13 @@ namespace MedicalWeb.Controllers
             ViewBag.DynamicFields = fields;
         }
 
+        // Этап 1: Сохранение во временную папку (temp)
         protected async Task SaveDynamicProperties(IHasDynamicProperties entity, IFormCollection form, string entityCode)
         {
             var definitions = await _context.AppFieldDefinitions
                 .Where(f => f.AppDefinition.EntityCode == entityCode)
                 .ToListAsync();
 
-            // 1. Загружаем СТАРЫЕ данные, чтобы не потерять существующие файлы и поля
             var resultDictionary = new Dictionary<string, object>();
             if (!string.IsNullOrEmpty(entity.Properties))
             {
@@ -58,33 +58,27 @@ namespace MedicalWeb.Controllers
             {
                 var formKey = $"DynamicProps[{def.SystemName}]";
 
-                // --- ЛОГИКА ДЛЯ ФАЙЛОВ ---
                 if (def.DataType == FieldDataType.File)
                 {
                     var files = form.Files.GetFiles(formKey);
 
-                    // Если пользователь загрузил НОВЫЕ файлы
                     if (files.Any())
                     {
                         var newPaths = new List<string>();
 
                         foreach (var file in files)
                         {
-                            // Проверка размера (20 МБ)
                             if (file.Length > 20 * 1024 * 1024) 
                             {
                                 ModelState.AddModelError(formKey, $"Файл '{file.FileName}' слишком велик (макс 20МБ).");
                                 continue;
                             }
 
-                            // СОЗДАЕМ УНИКАЛЬНУЮ ПАПКУ (GUID)
                             var folderGuid = Guid.NewGuid().ToString();
-                            var uploadDir = Path.Combine(_hostingEnvironment.WebRootPath, "uploads", folderGuid);
+                            var uploadDir = Path.Combine(_hostingEnvironment.WebRootPath, "uploads", "temp", folderGuid);
                             
                             if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
 
-                            // Сохраняем файл с ОРИГИНАЛЬНЫМ именем
-                            // Имя файла нужно обезопасить (на случай путей ../), но берем оригинал
                             var safeFileName = Path.GetFileName(file.FileName); 
                             var filePath = Path.Combine(uploadDir, safeFileName);
 
@@ -93,44 +87,29 @@ namespace MedicalWeb.Controllers
                                 await file.CopyToAsync(stream);
                             }
 
-                            // Путь: /uploads/{GUID}/{OriginalName}
-                            newPaths.Add($"/uploads/{folderGuid}/{safeFileName}");
+                            newPaths.Add($"/uploads/temp/{folderGuid}/{safeFileName}");
                         }
 
                         if (newPaths.Any())
                         {
                             if (def.IsArray)
                             {
-                                // Если это массив, нужно добавить к старым (если они есть) или записать новые
-                                // Здесь простая логика: если загрузили новые - перезаписываем или добавляем?
-                                // Обычно в веб-формах загрузка новых добавляется.
-                                // Но для простоты пока: если загрузили - это становится актуальным значением.
-                                // Чтобы реализовать "добавление", нужно считывать старый массив и делать AddRange.
-                                // Сейчас сделаем замену (как работает стандартный input type=file multiple),
-                                // но так как у нас есть "старый" словарь, если мы сюда не зашли - старое не пропадет.
                                 resultDictionary[def.SystemName] = newPaths.ToArray();
                             }
                             else
                             {
-                                // Одиночное поле - заменяем старое на новое
                                 resultDictionary[def.SystemName] = newPaths.First();
                             }
                         }
                     }
-                    // Если files.Count == 0, мы просто пропускаем блок. 
-                    // В resultDictionary остается старое значение (путь к файлу), которое мы загрузили в начале.
-                    // Файл НЕ исчезнет.
-                    
                     continue;
                 }
 
-                // --- ЛОГИКА ДЛЯ ОБЫЧНЫХ ПОЛЕЙ ---
                 if (form.ContainsKey(formKey))
                 {
                     var formValues = form[formKey];
                     var rawValues = formValues.Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
 
-                    // Если поле пришло пустым (пользователь стер текст) -> удаляем из словаря
                     if (!rawValues.Any()) 
                     {
                         if (def.IsRequired)
@@ -158,7 +137,6 @@ namespace MedicalWeb.Controllers
                 }
                 else if (def.IsRequired && !resultDictionary.ContainsKey(def.SystemName))
                 {
-                    // Поля нет в форме и нет в старых данных -> Ошибка
                     ModelState.AddModelError(formKey, $"Поле '{def.Label}' обязательно.");
                 }
             }
@@ -170,6 +148,134 @@ namespace MedicalWeb.Controllers
             };
             
             entity.Properties = JsonSerializer.Serialize(resultDictionary, options);
+        }
+
+        // Этап 2: Перемещение файлов в постоянную папку (EntityCode/ID)
+        protected void FinalizeDynamicFilePaths(IHasDynamicProperties entity, string entityCode, string recordId)
+        {
+            if (string.IsNullOrEmpty(entity.Properties)) return;
+
+            var props = JsonSerializer.Deserialize<Dictionary<string, object>>(entity.Properties);
+            if (props == null) return;
+
+            bool hasChanges = false;
+            var finalBaseFolder = Path.Combine(_hostingEnvironment.WebRootPath, "uploads", entityCode, recordId);
+
+            var keys = props.Keys.ToList();
+            foreach (var key in keys)
+            {
+                var value = props[key];
+                
+                if (value is JsonElement jEl)
+                {
+                    // Одиночное строковое значение (путь к файлу)
+                    if (jEl.ValueKind == JsonValueKind.String)
+                    {
+                        var path = jEl.GetString();
+                        if (!string.IsNullOrEmpty(path) && path.Contains("/uploads/temp/"))
+                        {
+                            var newPath = MoveFileToFinal(path, finalBaseFolder);
+                            if (newPath != null)
+                            {
+                                props[key] = newPath;
+                                hasChanges = true;
+                            }
+                        }
+                    }
+                    // Массив (может быть массив файлов или массив других данных)
+                    else if (jEl.ValueKind == JsonValueKind.Array)
+                    {
+                        // ИСПРАВЛЕНИЕ: Используем List<object>, чтобы хранить и строки, и булевы, и числа
+                        var newItems = new List<object>();
+                        bool arrayChanged = false;
+
+                        foreach (var item in jEl.EnumerateArray())
+                        {
+                            // ПРОВЕРКА: Обрабатываем как файл ТОЛЬКО если это строка
+                            if (item.ValueKind == JsonValueKind.String)
+                            {
+                                var path = item.GetString();
+                                if (!string.IsNullOrEmpty(path) && path.Contains("/uploads/temp/"))
+                                {
+                                    var newPath = MoveFileToFinal(path, finalBaseFolder);
+                                    if (newPath != null)
+                                    {
+                                        newItems.Add(newPath);
+                                        arrayChanged = true;
+                                        hasChanges = true;
+                                    }
+                                    else
+                                    {
+                                        newItems.Add(path);
+                                    }
+                                }
+                                else
+                                {
+                                    newItems.Add(path);
+                                }
+                            }
+                            else
+                            {
+                                // Если это не строка (например, false, 123), сохраняем как есть
+                                newItems.Add(item);
+                            }
+                        }
+
+                        if (arrayChanged) props[key] = newItems.ToArray();
+                    }
+                }
+            }
+
+            if (hasChanges)
+            {
+                var options = new JsonSerializerOptions 
+                { 
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    WriteIndented = true
+                };
+                entity.Properties = JsonSerializer.Serialize(props, options);
+            }
+        }
+
+        private string MoveFileToFinal(string tempWebPath, string finalBaseDir)
+        {
+            try
+            {
+                var tempSystemPath = _hostingEnvironment.WebRootPath + tempWebPath.Replace("/", Path.DirectorySeparatorChar.ToString());
+
+                if (!System.IO.File.Exists(tempSystemPath)) return null;
+
+                if (!Directory.Exists(finalBaseDir)) Directory.CreateDirectory(finalBaseDir);
+
+                var fileName = Path.GetFileName(tempSystemPath);
+                var finalSystemPath = Path.Combine(finalBaseDir, fileName);
+
+                if (System.IO.File.Exists(finalSystemPath))
+                {
+                    var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                    var ext = Path.GetExtension(fileName);
+                    var newName = $"{nameWithoutExt}_{Guid.NewGuid().ToString().Substring(0, 4)}{ext}";
+                    finalSystemPath = Path.Combine(finalBaseDir, newName);
+                    fileName = newName;
+                }
+
+                System.IO.File.Move(tempSystemPath, finalSystemPath);
+
+                var tempDir = Path.GetDirectoryName(tempSystemPath);
+                if (Directory.Exists(tempDir) && !Directory.EnumerateFileSystemEntries(tempDir).Any())
+                {
+                    Directory.Delete(tempDir);
+                }
+
+                var relativeDir = finalBaseDir.Replace(_hostingEnvironment.WebRootPath, "").Replace("\\", "/");
+                if (!relativeDir.StartsWith("/")) relativeDir = "/" + relativeDir;
+                
+                return $"{relativeDir.TrimEnd('/')}/{fileName}";
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private object ParseAndValidateValue(string val, AppFieldDefinition def, string formKey)
