@@ -6,11 +6,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting; // Для доступа к путям файлов
 
 namespace MedicalWeb.Controllers
 {
-    public class PatientsController(AppDbContext context) : BasePlatformController(context)
+    public class PatientsController : BasePlatformController
     {
+        // Исправленный конструктор
+        public PatientsController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
+            : base(context, hostingEnvironment)
+        {
+        }
+
         public async Task<IActionResult> Index()
         {
             var patients = await _context.Patients
@@ -42,8 +49,7 @@ namespace MedicalWeb.Controllers
         {
             obj.EntityCode = "patient";
             
-            // ИСПРАВЛЕНО: Убрана ручная конвертация в Dictionary.
-            // Теперь вызываем асинхронный метод из базового контроллера.
+            // Вызываем асинхронный метод из базового контроллера для сохранения данных и файлов
             await SaveDynamicProperties(obj, form, "patient");
             
             if (ModelState.IsValid)

@@ -5,7 +5,7 @@
     <div class="col-md-10">
         <h2 class="mb-4">Редактирование объекта</h2>
         
-        <form asp-action="Edit" method="post">
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="EntityCode" />
             

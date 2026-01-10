@@ -60,7 +60,19 @@
                                                 <div class="d-flex flex-wrap gap-1">
                                                     @foreach (var subVal in jArray)
                                                     {
-                                                        <span class="badge bg-light text-dark border">@subVal</span>
+                                                        @if (field.DataType == FieldDataType.File)
+                                                        {
+                                                            @if (!string.IsNullOrWhiteSpace(subVal.ToString()))
+                                                            {
+                                                                <a href="@subVal" target="_blank" class="badge bg-light text-primary border text-decoration-none">
+                                                                    <i class="bi bi-paperclip"></i> Файл
+                                                                </a>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-light text-dark border">@subVal</span>
+                                                        }
                                                     }
                                                 </div>
                                             }
@@ -68,6 +80,20 @@
                                             {
                                                 var isTrue = val.ToString()?.ToLower() == "true";
                                                 <i class="bi @(isTrue ? "bi-check-lg text-success" : "bi-x-lg text-danger")"></i>
+                                            }
+                                            else if (field.DataType == FieldDataType.File)
+                                            {
+                                                @* ИСПРАВЛЕНИЕ ЗДЕСЬ: Проверка на пустоту перед выводом кнопки *@
+                                                @if (!string.IsNullOrWhiteSpace(val.ToString()))
+                                                {
+                                                    <a href="@val" target="_blank" class="text-decoration-none">
+                                                        <i class="bi bi-paperclip"></i> Скачать
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">-</span>
+                                                }
                                             }
                                             else
                                             {

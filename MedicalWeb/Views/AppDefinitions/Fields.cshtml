@@ -9,6 +9,15 @@
         </ol>
     </nav>
 
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-@Model.Icon"></i> Поля сущности: @Model.Name</h2>
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFieldModal">

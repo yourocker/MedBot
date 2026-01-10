@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MedicalBot.Entities; 
 using MedicalBot.Entities.Company;
-using MedicalBot.Entities.Platform; // Добавили для доступа к AppDefinition и AppFieldDefinition
+using MedicalBot.Entities.Platform;
 
 namespace MedicalBot.Data
 {
@@ -29,7 +29,7 @@ namespace MedicalBot.Data
         public DbSet<Department> Departments { get; set; }
         public DbSet<StaffAppointment> StaffAppointments { get; set; }
         
-        // ---УНИВЕРСАЛЬНЫЕ ОБЪЕКТЫ ---
+        // --- УНИВЕРСАЛЬНЫЕ ОБЪЕКТЫ ---
         public DbSet<GenericObject> GenericObjects { get; set; }
         
         public DbSet<AppCategory> AppCategories { get; set; }
@@ -53,7 +53,7 @@ namespace MedicalBot.Data
             // Настройка Пациента
             modelBuilder.Entity<Patient>(entity =>
             {
-                // Настройка гибкого хранилища для пациентов (не забудь добавить это поле в класс Patient.cs)
+                // Настройка гибкого хранилища для пациентов
                 entity.Property(p => p.Properties).HasColumnType("jsonb");
                 
                 entity.HasIndex(p => p.NormalizedName);
@@ -76,8 +76,10 @@ namespace MedicalBot.Data
             {
                 // Настройки поля тоже будем хранить в JSON (для типов Table, Link и т.д.)
                 //entity.Property(f => f.SettingsJson).HasColumnType("jsonb");
+
+                entity.HasIndex(f => new { f.AppDefinitionId, f.SystemName })
+                      .IsUnique();
             });
-            
         }
     }
 }

@@ -5,12 +5,15 @@ using MedicalBot.Data;
 using MedicalBot.Entities.Platform;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting; // ДОБАВЛЕНО: Для IWebHostEnvironment
 
 namespace MedicalWeb.Controllers
 {
     public class AppCategoriesController : BasePlatformController
     {
-        public AppCategoriesController(AppDbContext context) : base(context)
+        // ИСПРАВЛЕНО: Конструктор теперь принимает два параметра и передает их родителю
+        public AppCategoriesController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
+            : base(context, hostingEnvironment)
         {
         }
 

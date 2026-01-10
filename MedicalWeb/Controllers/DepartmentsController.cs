@@ -7,12 +7,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting; // ДОБАВЛЕНО: Для IWebHostEnvironment
 
 namespace MedicalWeb.Controllers
 {
     public class DepartmentsController : BasePlatformController
     {
-        public DepartmentsController(AppDbContext context) : base(context)
+        // ИСПРАВЛЕНО: Конструктор теперь принимает два параметра и передает их родителю
+        public DepartmentsController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
+            : base(context, hostingEnvironment)
         {
         }
 
@@ -38,10 +41,8 @@ namespace MedicalWeb.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // ИСПРАВЛЕНО: Принимаем IFormCollection
         public async Task<IActionResult> Create(Department department, IFormCollection form)
         {
-            // ИСПРАВЛЕНО: await + форма + код сущности
             await SaveDynamicProperties(department, form, "Department");
 
             if (ModelState.IsValid)
@@ -71,12 +72,10 @@ namespace MedicalWeb.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // ИСПРАВЛЕНО: Принимаем IFormCollection
         public async Task<IActionResult> Edit(Guid id, Department department, IFormCollection form)
         {
             if (id != department.Id) return NotFound();
 
-            // ИСПРАВЛЕНО: await + форма + код сущности
             await SaveDynamicProperties(department, form, "Department");
 
             if (ModelState.IsValid)

@@ -6,10 +6,11 @@ using MedicalBot.Entities.Platform;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting; // Добавлено для IWebHostEnvironment
 
 namespace MedicalWeb.Controllers;
 
-public class GenericObjectsController(AppDbContext context) : BasePlatformController(context)
+public class GenericObjectsController(AppDbContext context, IWebHostEnvironment hostingEnvironment) : BasePlatformController(context, hostingEnvironment)
 {
     public async Task<IActionResult> Index(string entityCode)
     {
@@ -17,6 +18,7 @@ public class GenericObjectsController(AppDbContext context) : BasePlatformContro
         
         var definition = await _context.AppDefinitions
             .Include(d => d.Fields)
+            .OrderBy(d => d.Name) // Добавлена сортировка для стабильности
             .FirstOrDefaultAsync(d => d.EntityCode == entityCode);
 
         if (definition == null) return NotFound();

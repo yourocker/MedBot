@@ -320,7 +320,8 @@ namespace MedicalBot.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AppDefinitionId");
+                    b.HasIndex("AppDefinitionId", "SystemName")
+                        .IsUnique();
 
                     b.ToTable("AppFieldDefinitions");
                 });

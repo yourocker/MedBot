@@ -5,7 +5,7 @@
     <div class="col-md-10"> @* Расширил контейнер до 10 (было 8), чтобы поля были шире *@
         <h2 class="mb-4">Добавление объекта</h2>
         
-        <form asp-action="Create" method="post">
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
             <input type="hidden" name="EntityCode" value="@ViewBag.EntityCode" />
             
             @* --- ОСНОВНЫЕ ПОЛЯ (в едином стиле с доп. полями) --- *@

@@ -6,12 +6,15 @@ using MedicalBot.Entities.Company;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting; // ДОБАВЛЕНО: Для IWebHostEnvironment
 
 namespace MedicalWeb.Controllers
 {
     public class PositionsController : BasePlatformController
     {
-        public PositionsController(AppDbContext context) : base(context)
+        // ИСПРАВЛЕНО: Один четкий конструктор, передающий оба параметра в базу
+        public PositionsController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
+            : base(context, hostingEnvironment)
         {
         }
 
@@ -31,10 +34,8 @@ namespace MedicalWeb.Controllers
         // POST: Positions/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // ИСПРАВЛЕНО: Принимаем IFormCollection вместо Dictionary
         public async Task<IActionResult> Create(Position position, IFormCollection form)
         {
-            // ИСПРАВЛЕНО: Добавлен await и новый параметр "Position"
             await SaveDynamicProperties(position, form, "Position");
 
             if (ModelState.IsValid)
@@ -64,12 +65,10 @@ namespace MedicalWeb.Controllers
         // POST: Positions/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // ИСПРАВЛЕНО: Принимаем IFormCollection
         public async Task<IActionResult> Edit(Guid id, Position position, IFormCollection form)
         {
             if (id != position.Id) return NotFound();
 
-            // ИСПРАВЛЕНО: Добавлен await и новый параметр "Position"
             await SaveDynamicProperties(position, form, "Position");
 
             if (ModelState.IsValid)

@@ -7,12 +7,15 @@ using MedicalBot.Entities.Company;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting; // ДОБАВЛЕНО: Для IWebHostEnvironment
 
 namespace MedicalWeb.Controllers
 {
     public class EmployeesController : BasePlatformController
     {
-        public EmployeesController(AppDbContext context) : base(context)
+        // ИСПРАВЛЕНО: Конструктор теперь принимает два параметра и передает их родителю
+        public EmployeesController(AppDbContext context, IWebHostEnvironment hostingEnvironment) 
+            : base(context, hostingEnvironment)
         {
         }
 
@@ -43,13 +46,11 @@ namespace MedicalWeb.Controllers
         // --- СОЗДАНИЕ (POST) ---
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // ИСПРАВЛЕНО: DynamicProps заменен на IFormCollection form
         public async Task<IActionResult> Create(Employee employee, Guid[] selectedPositions, Guid[] selectedDepartments, string[] Phones, string[] Emails, IFormCollection form)
         {
             employee.Phones = Phones?.Where(p => !string.IsNullOrWhiteSpace(p)).ToList() ?? new List<string>();
             employee.Emails = Emails?.Where(e => !string.IsNullOrWhiteSpace(e)).ToList() ?? new List<string>();
 
-            // ИСПРАВЛЕНО: await + форма + код сущности
             await SaveDynamicProperties(employee, form, "Employee");
 
             if (ModelState.IsValid)
@@ -106,12 +107,10 @@ namespace MedicalWeb.Controllers
         // --- РЕДАКТИРОВАНИЕ (POST) ---
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // ИСПРАВЛЕНО: DynamicProps заменен на IFormCollection form
         public async Task<IActionResult> Edit(Guid id, Employee employee, Guid[] selectedPositions, Guid[] selectedDepartments, string[] Phones, string[] Emails, IFormCollection form)
         {
             if (id != employee.Id) return NotFound();
 
-            // ИСПРАВЛЕНО: await + форма + код сущности
             await SaveDynamicProperties(employee, form, "Employee");
 
             if (ModelState.IsValid)
